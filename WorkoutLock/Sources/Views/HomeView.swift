@@ -1,10 +1,24 @@
 import SwiftUI
 import UIKit
 
+private enum HomeSheet: Identifiable {
+    case record(WorkoutRecord)
+    case weightCheckIn
+
+    var id: String {
+        switch self {
+        case .record(let record):
+            return "record-\(record.id.uuidString)"
+        case .weightCheckIn:
+            return "weight-check-in"
+        }
+    }
+}
+
 struct HomeView: View {
     @EnvironmentObject private var store: AppStore
     @State private var isShowingWorkout = false
-    @State private var selectedRecord: WorkoutRecord?
+    @State private var activeSheet: HomeSheet?
 
     var body: some View {
         ZStack {
@@ -33,8 +47,21 @@ struct HomeView: View {
             )
             .environmentObject(store)
         }
-        .sheet(item: $selectedRecord) { record in
-            WorkoutRecordDetailView(record: record)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .record(let record):
+                WorkoutRecordDetailView(record: record)
+            case .weightCheckIn:
+                WeightCheckInSheet()
+                    .environmentObject(store)
+            }
+        }
+        .onAppear {
+            consumeWorkoutLaunchRequest()
+            showWeightCheckInIfDue()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .workoutStartRequested)) { _ in
+            consumeWorkoutLaunchRequest()
         }
     }
 
@@ -225,6 +252,17 @@ struct HomeView: View {
         .accessibilityLabel("筋トレ開始")
     }
 
+    private func consumeWorkoutLaunchRequest() {
+        guard WorkoutLaunchRequest.consumePending() else { return }
+        activeSheet = nil
+        isShowingWorkout = true
+    }
+
+    private func showWeightCheckInIfDue() {
+        guard activeSheet == nil, !isShowingWorkout, store.isWeeklyWeightCheckInDue else { return }
+        activeSheet = .weightCheckIn
+    }
+
     private var autoLogPreview: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -238,7 +276,7 @@ struct HomeView: View {
 
             if let latest = store.records.first {
                 Button {
-                    selectedRecord = latest
+                    activeSheet = .record(latest)
                 } label: {
                     WorkoutSnapshotCard(record: latest, isCompact: false)
                         .frame(maxWidth: .infinity)
@@ -284,7 +322,7 @@ struct HomeView: View {
             } else {
                 ForEach(store.records.prefix(4)) { record in
                     Button {
-                        selectedRecord = record
+                        activeSheet = .record(record)
                     } label: {
                         WorkoutRecordRow(record: record)
                     }
@@ -321,6 +359,100 @@ private struct TodayNextChip: View {
             emphasized ? AnyShapeStyle(.black) : AnyShapeStyle(.white.opacity(0.5)),
             in: RoundedRectangle(cornerRadius: 8)
         )
+    }
+}
+
+private struct WeightCheckInSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: AppStore
+    @State private var weightKg = 65.0
+    @State private var didLoadInitialWeight = false
+    @State private var didResolve = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("体重チェック")
+                        .font(.system(size: 34, weight: .black, design: .rounded))
+                    Text("入力すると、今日以降の回数ペースを自動で調整します。")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(WorkoutTheme.mutedInk)
+                }
+
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Text("現在")
+                            .font(.headline.weight(.black))
+                        Spacer()
+                        Text("\(weightKg, specifier: "%.1f")kg")
+                            .font(.system(size: 34, weight: .black, design: .rounded))
+                            .monospacedDigit()
+                    }
+
+                    Stepper(value: $weightKg, in: 35...160, step: 0.5) {
+                        Text("0.5kgずつ調整")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(WorkoutTheme.mutedInk)
+                    }
+                    .tint(.black)
+
+                    HStack {
+                        Text("いまの目標")
+                        Spacer()
+                        Text("\(store.targetReps)回")
+                            .fontWeight(.black)
+                            .monospacedDigit()
+                    }
+                    .font(.subheadline.weight(.bold))
+                }
+                .padding(18)
+                .background(.black.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+
+                Spacer(minLength: 0)
+
+                Button {
+                    didResolve = true
+                    store.completeWeeklyWeightCheckIn(weightKg: weightKg)
+                    Haptics.success()
+                    dismiss()
+                } label: {
+                    Label("入力して調整", systemImage: "checkmark")
+                        .font(.headline.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.black)
+
+                Button {
+                    didResolve = true
+                    store.deferWeeklyWeightCheckIn()
+                    Haptics.lightTap()
+                    dismiss()
+                } label: {
+                    Text("あとで")
+                        .font(.headline.weight(.black))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                }
+                .buttonStyle(.bordered)
+                .tint(.black)
+            }
+            .padding(24)
+            .background(WorkoutTheme.orange.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+            .onAppear {
+                guard !didLoadInitialWeight else { return }
+                weightKg = store.currentWeightKg
+                didLoadInitialWeight = true
+            }
+            .onDisappear {
+                guard !didResolve else { return }
+                store.deferWeeklyWeightCheckIn()
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 

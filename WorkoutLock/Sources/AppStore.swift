@@ -44,6 +44,14 @@ final class AppStore: ObservableObject {
         didSet { saveSettings() }
     }
 
+    @Published private(set) var weightCheckIns: [WeightCheckIn] = [] {
+        didSet { saveSettings() }
+    }
+
+    @Published private(set) var lastWeightPromptAt: Date? {
+        didSet { saveSettings() }
+    }
+
     @Published var tutorialCompleted = false {
         didSet { saveSettings() }
     }
@@ -207,6 +215,26 @@ final class AppStore: ObservableObject {
         "\(currentWeightKg.formatted(.number.precision(.fractionLength(1))))kg -> \(goalWeightKg.formatted(.number.precision(.fractionLength(1))))kg / \(goalDurationMonths)ヶ月"
     }
 
+    var latestWeightCheckIn: WeightCheckIn? {
+        weightCheckIns.first
+    }
+
+    var isWeeklyWeightCheckInDue: Bool {
+        guard onboardingCompleted || ProcessInfo.processInfo.arguments.contains("--skip-onboarding") else { return false }
+        guard let anchor = lastWeightPromptAt ?? latestWeightCheckIn?.loggedAt ?? planStartedAt else { return false }
+        guard !Calendar.current.isDateInToday(anchor) else { return false }
+        return Date().timeIntervalSince(anchor) >= 7 * 24 * 60 * 60
+    }
+
+    var nextWeightCheckInLabel: String {
+        let anchor = lastWeightPromptAt ?? latestWeightCheckIn?.loggedAt ?? planStartedAt ?? .now
+        let nextDate = Calendar.current.date(byAdding: .day, value: 7, to: anchor) ?? anchor
+        if nextDate <= .now {
+            return "入力できます"
+        }
+        return nextDate.formatted(date: .numeric, time: .omitted)
+    }
+
     var goalProgress: Double {
         if let selectedPlan {
             return min(1, Double(currentPlanWeek) / Double(max(1, selectedPlan.durationWeeks)))
@@ -305,6 +333,34 @@ final class AppStore: ObservableObject {
         planOptions = makePlanOptions()
     }
 
+    func deferWeeklyWeightCheckIn() {
+        lastWeightPromptAt = .now
+    }
+
+    func completeWeeklyWeightCheckIn(weightKg rawWeightKg: Double) {
+        let checkedWeight = min(160, max(35, (rawWeightKg * 10).rounded() / 10))
+        let previousWeightKg = currentWeightKg
+        let previousTargetReps = targetReps
+
+        currentWeightKg = checkedWeight
+        lastWeightPromptAt = .now
+        refreshSelectedPlanFromProfile()
+        syncTargetRepsWithPlan()
+
+        let checkIn = WeightCheckIn(
+            weightKg: checkedWeight,
+            previousWeightKg: previousWeightKg,
+            targetRepsBefore: previousTargetReps,
+            targetRepsAfter: targetReps,
+            planTitle: selectedPlan?.title
+        )
+        weightCheckIns.insert(checkIn, at: 0)
+
+        if isAlarmEnabled {
+            Task { await scheduleDailyAlarm() }
+        }
+    }
+
     func selectPlan(_ plan: TrainingPlan) {
         selectedPlan = plan
         planStartedAt = .now
@@ -343,14 +399,8 @@ final class AppStore: ObservableObject {
 
     func applyTutorialCalibration(_ calibration: TutorialCalibration) {
         tutorialCalibration = calibration
-        planOptions = makePlanOptions()
-        if let selectedPlan {
-            let matchingPlan = planOptions.first { $0.id == selectedPlan.id } ?? planOptions.first
-            if let matchingPlan {
-                self.selectedPlan = matchingPlan
-                syncTargetRepsWithPlan()
-            }
-        }
+        refreshSelectedPlanFromProfile()
+        syncTargetRepsWithPlan()
     }
 
     func completeOnboarding() {
@@ -437,6 +487,16 @@ final class AppStore: ObservableObject {
         }
     }
 
+    static func cancelStoredShielding(scheduledAt date: Date) {
+        let timestamp = UserDefaults.standard.double(forKey: Self.pendingShieldStartKey)
+        guard timestamp > 0 else { return }
+
+        let scheduledTimestamp = date.timeIntervalSince1970
+        guard abs(timestamp - scheduledTimestamp) < 2 else { return }
+
+        UserDefaults.standard.removeObject(forKey: Self.pendingShieldStartKey)
+    }
+
     static func applyStoredDueShieldingIfNeeded() {
         guard UserDefaults.standard.bool(forKey: Self.appBlockingEnabledKey) else { return }
         guard UserDefaults.standard.string(forKey: Self.completedDayKey) != Self.dayKey(for: .now) else { return }
@@ -492,6 +552,8 @@ final class AppStore: ObservableObject {
         goalDurationMonths = settings.goalDurationMonths ?? 3
         selectedPlan = settings.selectedPlan
         planStartedAt = settings.planStartedAt
+        weightCheckIns = (settings.weightCheckIns ?? []).sorted { $0.loggedAt > $1.loggedAt }
+        lastWeightPromptAt = settings.lastWeightPromptAt
         tutorialCompleted = settings.tutorialCompleted
         tutorialCalibration = settings.tutorialCalibration
         triggerPreference = TriggerPreference(rawValue: settings.triggerPreferenceRawValue) ?? .time
@@ -547,6 +609,8 @@ final class AppStore: ObservableObject {
             goalDurationMonths: goalDurationMonths,
             selectedPlan: selectedPlan,
             planStartedAt: planStartedAt,
+            weightCheckIns: weightCheckIns,
+            lastWeightPromptAt: lastWeightPromptAt,
             tutorialCompleted: tutorialCompleted,
             tutorialCalibration: tutorialCalibration,
             triggerPreferenceRawValue: triggerPreference.rawValue,
@@ -599,6 +663,19 @@ final class AppStore: ObservableObject {
         alarmTime = date
     }
 
+    private func refreshSelectedPlanFromProfile() {
+        let selectedPlanID = selectedPlan?.id
+        planOptions = makePlanOptions()
+
+        guard selectedPlan != nil else { return }
+
+        if let selectedPlanID, let matchingPlan = planOptions.first(where: { $0.id == selectedPlanID }) {
+            selectedPlan = matchingPlan
+        } else {
+            selectedPlan = planOptions.first
+        }
+    }
+
     static func dayKey(for date: Date) -> String {
         let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
         return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
@@ -628,6 +705,8 @@ private struct StoredSettings: Codable {
     let goalDurationMonths: Int?
     let selectedPlan: TrainingPlan?
     let planStartedAt: Date?
+    let weightCheckIns: [WeightCheckIn]?
+    let lastWeightPromptAt: Date?
     let tutorialCompleted: Bool
     let tutorialCalibration: TutorialCalibration?
     let triggerPreferenceRawValue: String

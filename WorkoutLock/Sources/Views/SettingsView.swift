@@ -40,6 +40,21 @@ struct SettingsView: View {
                     }
                     .settingsPanel()
 
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("体重・目標")
+                            .font(.title2.weight(.black))
+                        SettingsLine(title: "現在の体重", value: "\(store.currentWeightKg.formatted(.number.precision(.fractionLength(1))))kg")
+                        SettingsLine(title: "目標体重", value: "\(store.goalWeightKg.formatted(.number.precision(.fractionLength(1))))kg")
+                        SettingsLine(title: "次の入力", value: store.nextWeightCheckInLabel)
+                        if let latest = store.latestWeightCheckIn {
+                            SettingsLine(
+                                title: "直近の調整",
+                                value: "\(latest.targetRepsBefore)回 -> \(latest.targetRepsAfter)回"
+                            )
+                        }
+                    }
+                    .settingsPanel()
+
                     VStack(alignment: .leading, spacing: 18) {
                         Text("BGM")
                             .font(.title2.weight(.black))

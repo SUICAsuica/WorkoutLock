@@ -142,6 +142,34 @@ struct WorkoutRecord: Codable, Identifiable {
     }
 }
 
+struct WeightCheckIn: Codable, Identifiable {
+    let id: UUID
+    let loggedAt: Date
+    let weightKg: Double
+    let previousWeightKg: Double
+    let targetRepsBefore: Int
+    let targetRepsAfter: Int
+    let planTitle: String?
+
+    init(
+        id: UUID = UUID(),
+        loggedAt: Date = .now,
+        weightKg: Double,
+        previousWeightKg: Double,
+        targetRepsBefore: Int,
+        targetRepsAfter: Int,
+        planTitle: String?
+    ) {
+        self.id = id
+        self.loggedAt = loggedAt
+        self.weightKg = weightKg
+        self.previousWeightKg = previousWeightKg
+        self.targetRepsBefore = targetRepsBefore
+        self.targetRepsAfter = targetRepsAfter
+        self.planTitle = planTitle
+    }
+}
+
 struct DailyRepBar: Identifiable {
     let date: Date
     let reps: Int
@@ -544,7 +572,11 @@ struct HomeLocation: Codable, Equatable, Identifiable {
         "\(name) / \(latitude.formatted(.number.precision(.fractionLength(4)))), \(longitude.formatted(.number.precision(.fractionLength(4))))"
     }
 
+    var effectiveStartDelayMinutes: Int {
+        max(10, startDelayMinutes)
+    }
+
     var triggerSummary: String {
-        "\(kind.title) 到着\(startDelayMinutes)分後"
+        "\(kind.title) 到着\(effectiveStartDelayMinutes)分後"
     }
 }

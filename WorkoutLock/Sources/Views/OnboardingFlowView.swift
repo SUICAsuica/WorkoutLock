@@ -602,7 +602,7 @@ struct OnboardingFlowView: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(WorkoutTheme.mutedInk)
 
-                Stepper("ここに着いてから \(locationDelayMinutes)分後", value: $locationDelayMinutes, in: 1...60, step: 5)
+                Stepper("ここに着いてから \(locationDelayMinutes)分後", value: $locationDelayMinutes, in: 10...60, step: 5)
                     .font(.headline.weight(.black))
 
                 Picker("場所名", selection: $locationKind) {

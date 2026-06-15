@@ -58,6 +58,10 @@ final class WorkoutLockAppDelegate: NSObject, UIApplicationDelegate, UNUserNotif
     ) async -> UNNotificationPresentationOptions {
         await MainActor.run {
             AppStore.applyStoredDueShieldingIfNeeded()
+            if notification.request.content.userInfo["route"] as? String == "workout" {
+                WorkoutLaunchRequest.markPending()
+                NotificationCenter.default.post(name: .workoutStartRequested, object: nil)
+            }
         }
         return [.banner, .list, .sound, .badge]
     }
@@ -68,6 +72,10 @@ final class WorkoutLockAppDelegate: NSObject, UIApplicationDelegate, UNUserNotif
     ) async {
         await MainActor.run {
             AppStore.applyStoredDueShieldingIfNeeded()
+            if response.notification.request.content.userInfo["route"] as? String == "workout" {
+                WorkoutLaunchRequest.markPending()
+                NotificationCenter.default.post(name: .workoutStartRequested, object: nil)
+            }
         }
     }
 }

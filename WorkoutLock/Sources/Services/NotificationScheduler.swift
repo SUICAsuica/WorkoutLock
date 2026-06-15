@@ -1,6 +1,24 @@
 import Foundation
 import UserNotifications
 
+enum WorkoutLaunchRequest {
+    private static let pendingKey = "workout-lock.pending-workout-launch"
+
+    static func markPending() {
+        UserDefaults.standard.set(true, forKey: pendingKey)
+    }
+
+    static func consumePending() -> Bool {
+        let isPending = UserDefaults.standard.bool(forKey: pendingKey)
+        UserDefaults.standard.removeObject(forKey: pendingKey)
+        return isPending
+    }
+}
+
+extension Notification.Name {
+    static let workoutStartRequested = Notification.Name("workout-lock.workout-start-requested")
+}
+
 enum NotificationSchedulerError: LocalizedError {
     case permissionDenied
 

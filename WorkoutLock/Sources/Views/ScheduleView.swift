@@ -124,7 +124,7 @@ struct ScheduleView: View {
                         }
                         .pickerStyle(.segmented)
 
-                        Stepper("到着\(delayMinutes)分後", value: $delayMinutes, in: 1...60, step: 5)
+                        Stepper("到着\(delayMinutes)分後", value: $delayMinutes, in: 10...60, step: 5)
                             .font(.headline.weight(.black))
 
                         Button {

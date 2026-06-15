@@ -4,6 +4,9 @@ import UserNotifications
 
 @MainActor
 final class LocationTriggerService: NSObject, ObservableObject {
+    private static let triggerRadiusMeters: CLLocationDistance = 100
+    private static let minimumStayMinutes = 10
+
     @Published private(set) var statusText = "帰宅地点は未設定です"
     @Published private(set) var capturedHomeLocation: HomeLocation?
 
@@ -17,7 +20,8 @@ final class LocationTriggerService: NSObject, ObservableObject {
     override init() {
         super.init()
         manager.delegate = self
-        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
+        manager.distanceFilter = 25
     }
 
     func requestHomeLocation() {
@@ -88,12 +92,13 @@ final class LocationTriggerService: NSObject, ObservableObject {
             let center = CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
             let region = CLCircularRegion(
                 center: center,
-                radius: 150,
+                radius: Self.triggerRadiusMeters,
                 identifier: regionIdentifier(for: location)
             )
             region.notifyOnEntry = true
-            region.notifyOnExit = false
+            region.notifyOnExit = true
             manager.startMonitoring(for: region)
+            manager.requestState(for: region)
         }
 
         statusText = locations.isEmpty ? "位置トリガーは未設定です" : "\(locations.count)件の位置トリガーを監視中"
@@ -103,9 +108,32 @@ final class LocationTriggerService: NSObject, ObservableObject {
         "workout-lock-location-\(location.id.uuidString)"
     }
 
+    private func arrivalNotificationIdentifier(for location: HomeLocation) -> String {
+        "workout-lock-arrival-\(location.id.uuidString)"
+    }
+
+    private func pendingArrivalStartKey(for location: HomeLocation) -> String {
+        "workout-lock.pending-arrival-start.\(location.id.uuidString)"
+    }
+
+    private func effectiveDelayMinutes(for location: HomeLocation) -> Int {
+        max(Self.minimumStayMinutes, location.effectiveStartDelayMinutes)
+    }
+
+    private func pendingArrivalStartDate(for location: HomeLocation) -> Date? {
+        let timestamp = UserDefaults.standard.double(forKey: pendingArrivalStartKey(for: location))
+        guard timestamp > Date().timeIntervalSince1970 else { return nil }
+        return Date(timeIntervalSince1970: timestamp)
+    }
+
     private func scheduleArrivalNotification(for location: HomeLocation) {
         guard UserDefaults.standard.string(forKey: AppStore.completedDayKey) != AppStore.dayKey(for: .now) else {
             statusText = "今日は完了済みなので通知しません"
+            return
+        }
+
+        if pendingArrivalStartDate(for: location) != nil {
+            statusText = "\(location.triggerSummary)の通知を予約済みです"
             return
         }
 
@@ -121,21 +149,22 @@ final class LocationTriggerService: NSObject, ObservableObject {
 
                 let content = UNMutableNotificationContent()
                 content.title = "筋トレ開始"
-                content.body = "\(location.kind.title)に着いて\(location.startDelayMinutes)分。スクワットを始めてアプリ制限を解除しましょう。"
+                content.body = "\(location.kind.title)に着いて\(self.effectiveDelayMinutes(for: location))分。スクワットを始めてアプリ制限を解除しましょう。"
                 content.sound = .default
                 content.categoryIdentifier = NotificationScheduler.workoutCategoryIdentifier
                 content.interruptionLevel = .timeSensitive
                 content.userInfo = ["route": "workout", "trigger": "location"]
 
-                let startDelaySeconds = TimeInterval(max(1, location.startDelayMinutes) * 60)
+                let startDelaySeconds = TimeInterval(self.effectiveDelayMinutes(for: location) * 60)
                 let startDate = Date().addingTimeInterval(startDelaySeconds)
                 let trigger = UNTimeIntervalNotificationTrigger(timeInterval: startDelaySeconds, repeats: false)
                 let request = UNNotificationRequest(
-                    identifier: "workout-lock-arrival-\(location.id.uuidString)-\(Date().timeIntervalSince1970)",
+                    identifier: self.arrivalNotificationIdentifier(for: location),
                     content: content,
                     trigger: trigger
                 )
                 try await center.add(request)
+                UserDefaults.standard.set(startDate.timeIntervalSince1970, forKey: self.pendingArrivalStartKey(for: location))
                 AppStore.scheduleStoredShielding(at: startDate)
 
                 let targetReps = max(1, UserDefaults.standard.integer(forKey: AppStore.liveActivityTargetRepsKey))
@@ -152,6 +181,38 @@ final class LocationTriggerService: NSObject, ObservableObject {
                 statusText = "到着後通知の予約に失敗しました: \(error.localizedDescription)"
             }
         }
+    }
+
+    private func cancelArrivalNotification(for location: HomeLocation) {
+        let key = pendingArrivalStartKey(for: location)
+        let timestamp = UserDefaults.standard.double(forKey: key)
+        let scheduledDate = timestamp > 0 ? Date(timeIntervalSince1970: timestamp) : nil
+
+        UNUserNotificationCenter.current().removePendingNotificationRequests(
+            withIdentifiers: [arrivalNotificationIdentifier(for: location)]
+        )
+        UserDefaults.standard.removeObject(forKey: key)
+
+        if let scheduledDate {
+            AppStore.cancelStoredShielding(scheduledAt: scheduledDate)
+        }
+
+        Task { @MainActor in
+            await WorkoutLiveActivityService.endAll()
+        }
+
+        statusText = "\(location.triggerSummary)の通知を解除しました"
+    }
+
+    private func handleInsideRegion(identifier: String) {
+        guard let location = monitoredLocations[identifier] else { return }
+        statusText = "\(location.triggerSummary)の通知を予約しました"
+        scheduleArrivalNotification(for: location)
+    }
+
+    private func handleOutsideRegion(identifier: String) {
+        guard let location = monitoredLocations[identifier] else { return }
+        cancelArrivalNotification(for: location)
     }
 }
 
@@ -197,9 +258,26 @@ extension LocationTriggerService: CLLocationManagerDelegate {
 
     nonisolated func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         Task { @MainActor [weak self] in
-            guard let self, let location = self.monitoredLocations[region.identifier] else { return }
-            self.statusText = "\(location.triggerSummary)の通知を予約しました"
-            self.scheduleArrivalNotification(for: location)
+            self?.handleInsideRegion(identifier: region.identifier)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+        Task { @MainActor [weak self] in
+            self?.handleOutsideRegion(identifier: region.identifier)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
+        Task { @MainActor [weak self] in
+            switch state {
+            case .inside:
+                self?.handleInsideRegion(identifier: region.identifier)
+            case .outside:
+                self?.handleOutsideRegion(identifier: region.identifier)
+            case .unknown:
+                break
+            }
         }
     }
 }

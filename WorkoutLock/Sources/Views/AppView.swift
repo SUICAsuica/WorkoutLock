@@ -32,6 +32,9 @@ struct AppView: View {
                 store.applyDueShieldingIfNeeded()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .workoutStartRequested)) { _ in
+            selectedTab = 0
+        }
     }
 
     private var mainTabs: some View {
