@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 @MainActor
 final class AppStore: ObservableObject {
@@ -124,6 +125,7 @@ final class AppStore: ObservableObject {
     @Published var notificationMessage = "通知は未設定です"
 
     private let notificationScheduler = NotificationScheduler()
+    private var isLoadingPersistedState = false
     private let settingsKey = "workout-lock.settings"
     private let recordsKey = "workout-lock.records"
     static let completedDayKey = "workout-lock.completed-day"
@@ -134,8 +136,15 @@ final class AppStore: ObservableObject {
 
     init() {
         NotificationScheduler.registerCategories()
+        AppDurableBackup.restoreLocalDataIfNeeded(
+            settingsKey: settingsKey,
+            recordsKey: recordsKey,
+            completedDayKey: Self.completedDayKey
+        )
+        isLoadingPersistedState = true
         loadSettings()
         loadRecords()
+        isLoadingPersistedState = false
         UserDefaults.standard.set(appBlockingEnabled, forKey: Self.appBlockingEnabledKey)
         if planOptions.isEmpty {
             planOptions = makePlanOptions()
@@ -143,6 +152,9 @@ final class AppStore: ObservableObject {
         normalizeTriggerPreference()
         syncTargetRepsWithPlan()
         resumePendingShieldingIfNeeded()
+        AppDurableBackup.backupSettingsData(UserDefaults.standard.data(forKey: settingsKey))
+        AppDurableBackup.backupRecords(records)
+        AppDurableBackup.backupCompletedDay(UserDefaults.standard.string(forKey: Self.completedDayKey))
     }
 
     var todayRecordCount: Int {
@@ -523,6 +535,7 @@ final class AppStore: ObservableObject {
         records.insert(record, at: 0)
         if countsTowardDailyCompletion {
             UserDefaults.standard.set(Self.dayKey(for: record.completedAt), forKey: Self.completedDayKey)
+            AppDurableBackup.backupCompletedDay(Self.dayKey(for: record.completedAt))
             UserDefaults.standard.removeObject(forKey: Self.pendingShieldStartKey)
         }
         saveRecords()
@@ -593,6 +606,8 @@ final class AppStore: ObservableObject {
     }
 
     private func saveSettings() {
+        guard !isLoadingPersistedState else { return }
+
         UserDefaults.standard.set(targetReps, forKey: Self.liveActivityTargetRepsKey)
         UserDefaults.standard.set(selectedExercise.rawValue, forKey: Self.liveActivityExerciseKey)
         UserDefaults.standard.set(appBlockingEnabled, forKey: Self.appBlockingEnabledKey)
@@ -631,6 +646,7 @@ final class AppStore: ObservableObject {
 
         if let data = try? JSONEncoder().encode(settings) {
             UserDefaults.standard.set(data, forKey: settingsKey)
+            AppDurableBackup.backupSettingsData(data)
         }
     }
 
@@ -646,8 +662,11 @@ final class AppStore: ObservableObject {
     }
 
     private func saveRecords() {
+        guard !isLoadingPersistedState else { return }
+
         if let data = try? JSONEncoder().encode(records) {
             UserDefaults.standard.set(data, forKey: recordsKey)
+            AppDurableBackup.backupRecords(records)
         }
     }
 
@@ -691,6 +710,105 @@ final class AppStore: ObservableObject {
             calibration: tutorialCalibration,
             recentRecords: records
         )
+    }
+}
+
+private enum AppDurableBackup {
+    private static let service = "com.kosakanao.WorkoutLock.backup"
+    private static let settingsDataKey = "settings-data"
+    private static let recordsDataKey = "records-data"
+    private static let completedDayKey = "completed-day"
+    private static let maximumPortableRecordCount = 500
+
+    static func restoreLocalDataIfNeeded(
+        settingsKey: String,
+        recordsKey: String,
+        completedDayKey localCompletedDayKey: String
+    ) {
+        let defaults = UserDefaults.standard
+        if defaults.data(forKey: settingsKey) == nil, let data = data(for: settingsDataKey) {
+            defaults.set(data, forKey: settingsKey)
+        }
+
+        if defaults.data(forKey: recordsKey) == nil, let data = data(for: recordsDataKey) {
+            defaults.set(data, forKey: recordsKey)
+        }
+
+        if
+            defaults.string(forKey: localCompletedDayKey) == nil,
+            let data = data(for: completedDayKey),
+            let completedDay = String(data: data, encoding: .utf8)
+        {
+            defaults.set(completedDay, forKey: localCompletedDayKey)
+        }
+    }
+
+    static func backupSettingsData(_ data: Data?) {
+        guard let data else { return }
+        save(data, for: settingsDataKey)
+    }
+
+    static func backupRecords(_ records: [WorkoutRecord]) {
+        let portableRecords = records.prefix(maximumPortableRecordCount).map {
+            WorkoutRecord(
+                id: $0.id,
+                completedAt: $0.completedAt,
+                exercise: $0.exercise,
+                targetReps: $0.targetReps,
+                actualReps: $0.actualReps,
+                duration: $0.duration,
+                snapshotData: nil
+            )
+        }
+
+        guard let data = try? JSONEncoder().encode(portableRecords) else { return }
+
+        save(data, for: recordsDataKey)
+    }
+
+    static func backupCompletedDay(_ dayKey: String?) {
+        guard let data = dayKey?.data(using: .utf8) else { return }
+        save(data, for: completedDayKey)
+    }
+
+    private static func data(for account: String) -> Data? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess else { return nil }
+        return result as? Data
+    }
+
+    private static func save(_ data: Data, for account: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let update: [String: Any] = [
+            kSecValueData as String: data
+        ]
+
+        let updateStatus = SecItemUpdate(query as CFDictionary, update as CFDictionary)
+        if updateStatus == errSecSuccess {
+            return
+        }
+
+        let item: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            kSecValueData as String: data
+        ]
+        SecItemAdd(item as CFDictionary, nil)
     }
 }
 
