@@ -23,19 +23,18 @@ struct HomeView: View {
     var body: some View {
         ZStack {
             WorkoutTheme.orange.ignoresSafeArea()
+            GlassBackdrop()
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 18) {
-                    header
-                    buddyCard
-                    mainCounter
-                    goalCompass
-                    startControls
-                    autoLogPreview
-                    recentRecords
+                VStack(spacing: 16) {
+                    topBar
+                    heroCard
+                    startButton
+                    statsRow
+                    recordsCard
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
+                .padding(.horizontal, 22)
+                .padding(.top, 16)
                 .padding(.bottom, 36)
             }
         }
@@ -65,160 +64,68 @@ struct HomeView: View {
         }
     }
 
-    private var header: some View {
-        VStack(spacing: 20) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("筋トレロック")
-                        .font(.system(size: 28, weight: .black, design: .rounded))
-                    Text("アプリ解禁まで \(store.targetReps) 回")
-                        .font(.headline)
-                        .foregroundStyle(WorkoutTheme.mutedInk)
-                }
-                Spacer()
-                Text(store.primaryTriggerLabel)
-                    .font(.system(size: 20, weight: .black, design: .rounded))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.64)
-            }
-
-            HStack(spacing: 22) {
-                MetricHeader(value: "\(store.targetReps)", label: "目標回数")
-                MetricHeader(value: "\(store.streakDays)", label: "連続日数")
-                MetricHeader(value: "\(store.todayRecordCount)", label: "今日のセット")
-            }
+    private var topBar: some View {
+        HStack(alignment: .center) {
+            Text("筋トレロック")
+                .font(.system(size: 26, weight: .semibold, design: .rounded))
+                .foregroundStyle(WorkoutInk.primary)
+            Spacer()
+            Label(store.primaryTriggerLabel, systemImage: "clock")
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(WorkoutInk.primary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .liquidGlass(cornerRadius: 16)
         }
-        .workoutPanelSurface()
     }
 
-    private var goalCompass: some View {
-        let progress = store.goalProgress
-
-        return VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("目標まで")
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(.white.opacity(0.58))
-                    Text(store.goalSummary)
-                        .font(.system(size: 24, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
-                        .minimumScaleFactor(0.72)
-                        .lineLimit(1)
-                }
-
-                Spacer()
-
-                Text("\(Int((progress * 100).rounded()))%")
-                    .font(.system(size: 34, weight: .black, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(WorkoutTheme.orange)
-            }
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(.white.opacity(0.16))
-                    Capsule()
-                        .fill(WorkoutTheme.orange)
-                        .frame(width: max(10, proxy.size.width * progress))
-                }
-            }
-            .frame(height: 10)
-
-            HStack(spacing: 10) {
-                GoalPill(title: "今日の目標", value: "\(store.targetReps)回")
-                GoalPill(title: "現在", value: "\(store.currentPlanWeek + 1)週目")
-                GoalPill(title: "次の目標", value: store.nextPlanTargetValue)
-            }
+    private var statsRow: some View {
+        HStack(spacing: 10) {
+            StatChip(value: "\(store.streakDays)", unit: "日連続")
+            StatChip(value: "\(store.todayRecordCount)", unit: "今日セット")
+            StatChip(value: "\(Int((store.goalProgress * 100).rounded()))%", unit: "目標達成")
         }
-        .padding(18)
-        .background(.black, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    private var buddyCard: some View {
-        HStack(spacing: 18) {
-            WorkoutBuddyView(
-                phase: store.hasCompletedToday ? .complete : .ready,
-                progress: store.hasCompletedToday ? 1 : 0,
-                isComplete: store.hasCompletedToday,
-                size: .compact
-            )
-            .frame(width: 132, height: 108)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("もちトレ相棒")
-                    .font(.caption.weight(.black))
-                    .foregroundStyle(.white.opacity(0.58))
-                Text(store.hasCompletedToday ? "今日は解除済み" : "一緒にスクワット")
-                    .font(.system(size: 24, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.74)
-                Text(store.hasCompletedToday ? "明日また待機します" : "\(store.targetReps)回でロック解除")
-                    .font(.subheadline.weight(.black))
-                    .foregroundStyle(WorkoutTheme.orange)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(18)
-        .background(.black, in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private var mainCounter: some View {
+    private var heroCard: some View {
         let isDone = store.hasCompletedToday
-        let detailText: String = {
-            if isDone {
-                let reps = store.todayReps
-                let count = store.todayRecordCount
-                return count > 1 ? "今日は\(reps)回 / \(count)セット完了" : "今日は\(reps)回完了"
-            }
+        return VStack(spacing: 12) {
+            WorkoutBuddyView(
+                phase: isDone ? .complete : .ready,
+                progress: isDone ? 1 : store.goalProgress,
+                isComplete: isDone,
+                size: .hero
+            )
+            .frame(height: 124)
 
-            if let calibration = store.tutorialCalibration {
-                return "補正済み判定: \(calibration.qualityScore)%"
-            }
-
-            return "達成でアプリのロック解除"
-        }()
-
-        return VStack(spacing: 8) {
             if isDone {
                 Text("OPEN")
-                    .font(.system(size: 86, weight: .black, design: .rounded))
-                    .minimumScaleFactor(0.65)
-                    .monospacedDigit()
-                    .foregroundStyle(.black)
+                    .font(.system(size: 64, weight: .black, design: .rounded))
+                    .foregroundStyle(WorkoutInk.primary)
+                Text(store.todayRecordCount > 1 ? "今日 \(store.todayReps)回 / \(store.todayRecordCount)セット" : "今日 \(store.todayReps)回 完了")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(WorkoutTheme.mutedInk)
             } else {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text("\(store.targetReps)")
-                        .font(.system(size: 96, weight: .black, design: .rounded))
-                        .minimumScaleFactor(0.65)
+                        .font(.system(size: 76, weight: .black, design: .rounded))
                         .monospacedDigit()
-                        .foregroundStyle(.black)
+                        .foregroundStyle(WorkoutInk.primary)
                     Text("回")
-                        .font(.system(size: 34, weight: .black, design: .rounded))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(WorkoutTheme.mutedInk)
-                        .padding(.bottom, 14)
+                        .padding(.bottom, 12)
                 }
-            }
-
-            Text(detailText)
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
-                .foregroundStyle(WorkoutTheme.mutedInk)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-
-            if !isDone {
                 todayNextStrip
-                    .padding(.top, 4)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.vertical, 22)
+        .padding(.horizontal, 18)
+        .liquidGlass(cornerRadius: 30)
     }
 
     private var todayNextStrip: some View {
@@ -231,24 +138,14 @@ struct HomeView: View {
         }
     }
 
-    private var startControls: some View {
+    private var startButton: some View {
         Button {
             Haptics.mediumTap()
             isShowingWorkout = true
         } label: {
-            HStack(spacing: 14) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 24, weight: .black))
-                Text("開始")
-                    .font(.system(size: 28, weight: .black, design: .rounded))
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 82)
-            .foregroundStyle(.white)
-            .background(.black, in: RoundedRectangle(cornerRadius: 8))
-            .contentShape(Rectangle())
+            Label(store.hasCompletedToday ? "もう1セット" : "開始", systemImage: "play.fill")
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glassPrimary)
         .accessibilityLabel("筋トレ開始")
     }
 
@@ -263,64 +160,26 @@ struct HomeView: View {
         activeSheet = .weightCheckIn
     }
 
-    private var autoLogPreview: some View {
+    private var recordsCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("自動ログ")
-                    .font(.system(size: 24, weight: .black, design: .rounded))
+                Text("記録")
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .foregroundStyle(WorkoutInk.primary)
                 Spacer()
-                Text("\(store.recordSnapshotCount)枚")
-                    .font(.headline.monospacedDigit())
+                Text("\(store.totalReps)回")
+                    .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
                     .foregroundStyle(WorkoutTheme.mutedInk)
             }
 
-            if let latest = store.records.first {
-                Button {
-                    activeSheet = .record(latest)
-                } label: {
-                    WorkoutSnapshotCard(record: latest, isCompact: false)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.plain)
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "camera.viewfinder")
-                        .font(.system(size: 42, weight: .black))
-                    Text("トレーニング完了時に自動で1枚残ります")
-                        .font(.headline.weight(.black))
-                    Text("手動で写真を選ぶ必要はありません")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.white.opacity(0.62))
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 170)
-                .foregroundStyle(.white)
-                .background(.black, in: RoundedRectangle(cornerRadius: 8))
-            }
-        }
-        .workoutPanelSurface()
-    }
-
-    private var recentRecords: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Text("最近の記録")
-                    .font(.system(size: 24, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                Spacer()
-                Text("\(store.totalReps)回")
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.65))
-            }
-
             if store.records.isEmpty {
-                Text("まだ0回。最初の1セットを完了すると、回数・時間・その瞬間の映像が残ります。")
-                    .font(.headline)
-                    .foregroundStyle(.white.opacity(0.68))
+                Text("最初の1セットで記録が残ります")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(WorkoutTheme.mutedInk)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 6)
             } else {
-                ForEach(store.records.prefix(4)) { record in
+                ForEach(store.records.prefix(3)) { record in
                     Button {
                         activeSheet = .record(record)
                     } label: {
@@ -330,8 +189,33 @@ struct HomeView: View {
                 }
             }
         }
-        .workoutPanelSurface(padding: 22)
-        .background(WorkoutTheme.panel.opacity(0.88), in: RoundedRectangle(cornerRadius: 8))
+        .padding(18)
+        .frame(maxWidth: .infinity)
+        .liquidGlass(cornerRadius: 24)
+    }
+}
+
+private struct StatChip: View {
+    let value: String
+    let unit: String
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Text(value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(WorkoutInk.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+            Text(unit)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(WorkoutTheme.mutedInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .liquidGlass(cornerRadius: 18)
     }
 }
 
@@ -504,146 +388,92 @@ enum WorkoutBuddySize {
     case hero
 }
 
+/// もちトレ相棒のドット絵（ピクセルアート）。16x16グリッドのスプライト。
+/// 表情は状態で出し分け: 通常 / 追い込み(lowered) / 達成(complete)。
 struct WorkoutBuddyView: View {
     let phase: RepPhase
     let progress: Double
     let isComplete: Bool
     let size: WorkoutBuddySize
 
-    private var pose: BuddyPose {
-        if isComplete {
-            return BuddyPose(bodyY: 4.25, bodyWidth: 7.7, bodyHeight: 5.8, footSpread: 1.15, kneeDrop: 0.25, armLift: -2.3, smileLift: -0.18)
-        }
+    private enum Mood {
+        case normal, effort, happy
+    }
 
-        switch phase {
-        case .ready:
-            return BuddyPose(bodyY: 4.55, bodyWidth: 7.25, bodyHeight: 5.95, footSpread: 0.25, kneeDrop: 0.15, armLift: 0.15, smileLift: 0)
-        case .standing:
-            return BuddyPose(bodyY: 4.2, bodyWidth: 7.05, bodyHeight: 6.25, footSpread: 0.05, kneeDrop: 0, armLift: 0, smileLift: 0)
-        case .lowered:
-            return BuddyPose(bodyY: 5.55, bodyWidth: 8.0, bodyHeight: 4.9, footSpread: 1.45, kneeDrop: 1.05, armLift: 1.05, smileLift: 0.15)
-        case .complete:
-            return BuddyPose(bodyY: 4.25, bodyWidth: 7.7, bodyHeight: 5.8, footSpread: 1.15, kneeDrop: 0.25, armLift: -2.3, smileLift: -0.18)
-        }
+    private var mood: Mood {
+        if isComplete { return .happy }
+        if phase == .lowered { return .effort }
+        return .normal
     }
 
     var body: some View {
         Canvas { context, canvasSize in
-            let unit = min(canvasSize.width / 16, canvasSize.height / 13)
+            let unit = min(canvasSize.width, canvasSize.height) / 16
             let origin = CGPoint(
                 x: (canvasSize.width - (16 * unit)) / 2,
-                y: (canvasSize.height - (13 * unit)) / 2
+                y: (canvasSize.height - (16 * unit)) / 2
             )
-            let pose = pose
-            let body = Color(red: 1.0, green: 0.78, blue: 0.38)
-            let bodyShade = Color(red: 0.95, green: 0.52, blue: 0.23)
-            let blush = Color(red: 1.0, green: 0.36, blue: 0.42)
-            let shoe = Color(red: 0.14, green: 0.18, blue: 0.2)
-            let ink = Color.black
-            let glow = WorkoutTheme.orange.opacity(0.3 + (min(max(progress, 0), 1) * 0.45))
 
-            func rect(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ color: Color) {
+            let body = Color(red: 0.93, green: 0.525, blue: 0.22)
+            let shade = Color(red: 0.85, green: 0.41, blue: 0.16)
+            let ink = Color(red: 0.227, green: 0.141, blue: 0.063)
+            let sweat = Color(red: 0.42, green: 0.72, blue: 0.91)
+
+            func px(_ x: Int, _ y: Int, _ w: Int, _ h: Int, _ color: Color) {
                 let frame = CGRect(
-                    x: origin.x + (x * unit),
-                    y: origin.y + (y * unit),
-                    width: width * unit,
-                    height: height * unit
+                    x: origin.x + (CGFloat(x) * unit),
+                    y: origin.y + (CGFloat(y) * unit),
+                    width: CGFloat(w) * unit,
+                    height: CGFloat(h) * unit
                 )
                 context.fill(Path(frame), with: .color(color))
             }
 
-            func rounded(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ radius: CGFloat, _ color: Color) {
-                let frame = CGRect(
-                    x: origin.x + (x * unit),
-                    y: origin.y + (y * unit),
-                    width: width * unit,
-                    height: height * unit
-                )
-                context.fill(Path(roundedRect: frame, cornerRadius: radius * unit), with: .color(color))
-            }
+            px(4, 15, 8, 1, .black.opacity(0.16))
 
-            func ellipse(_ x: CGFloat, _ y: CGFloat, _ width: CGFloat, _ height: CGFloat, _ color: Color) {
-                let frame = CGRect(
-                    x: origin.x + (x * unit),
-                    y: origin.y + (y * unit),
-                    width: width * unit,
-                    height: height * unit
-                )
-                context.fill(Path(ellipseIn: frame), with: .color(color))
-            }
+            px(7, 0, 2, 3, shade)
+            px(5, 1, 1, 1, shade)
+            px(10, 1, 1, 1, shade)
 
-            func line(from start: CGPoint, to end: CGPoint, color: Color, width: CGFloat) {
-                var path = Path()
-                path.move(to: CGPoint(x: origin.x + (start.x * unit), y: origin.y + (start.y * unit)))
-                path.addLine(to: CGPoint(x: origin.x + (end.x * unit), y: origin.y + (end.y * unit)))
-                context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: width * unit, lineCap: .round))
-            }
+            px(6, 4, 4, 1, body)
+            px(5, 5, 6, 1, body)
+            px(4, 6, 8, 1, body)
+            px(3, 7, 10, 2, body)
+            px(2, 9, 12, 2, body)
+            px(3, 11, 10, 1, body)
+            px(4, 12, 8, 1, body)
+            px(6, 13, 4, 1, body)
+            px(12, 9, 1, 2, shade)
+            px(4, 12, 8, 1, shade.opacity(0.55))
 
-            let bodyX = (16 - pose.bodyWidth) / 2
-            let bodyY = pose.bodyY
-            let bodyCenterX: CGFloat = 8
-            let faceY = bodyY + 2.25
-            let handY = bodyY + 2.55 + pose.armLift
-            let footY = bodyY + pose.bodyHeight + 1.8 + pose.kneeDrop
-
-            ellipse(2.0, 10.8, 12.0, 0.85, .black.opacity(0.28))
-            rounded(3.45, 10.0, 9.1 * min(max(progress, 0.08), 1), 0.34, 0.17, glow)
-
-            line(from: CGPoint(x: bodyX + 0.45, y: bodyY + 2.95), to: CGPoint(x: 2.35, y: handY), color: bodyShade, width: 0.64)
-            line(from: CGPoint(x: bodyX + pose.bodyWidth - 0.45, y: bodyY + 2.95), to: CGPoint(x: 13.65, y: handY), color: bodyShade, width: 0.64)
-            rounded(1.75, handY - 0.3, 1.2, 0.62, 0.31, shoe)
-            rounded(13.05, handY - 0.3, 1.2, 0.62, 0.31, shoe)
-            rect(1.55, handY - 0.08, 1.6, 0.18, .white.opacity(0.74))
-            rect(12.85, handY - 0.08, 1.6, 0.18, .white.opacity(0.74))
-
-            ellipse(bodyX, bodyY, pose.bodyWidth, pose.bodyHeight, body)
-            ellipse(bodyX + 0.78, bodyY + 0.45, pose.bodyWidth - 1.55, pose.bodyHeight - 1.15, Color.white.opacity(0.14))
-            rounded(bodyX + 1.08, bodyY + 0.42, pose.bodyWidth - 2.16, 0.72, 0.36, WorkoutTheme.orange)
-            rounded(bodyCenterX - 1.08, bodyY + 0.2, 2.16, 0.36, 0.18, .white.opacity(0.92))
-
-            ellipse(5.15, faceY, 0.68, 0.92, ink)
-            ellipse(10.17, faceY, 0.68, 0.92, ink)
-            ellipse(4.35, faceY + 1.25, 1.0, 0.55, blush.opacity(0.58))
-            ellipse(10.65, faceY + 1.25, 1.0, 0.55, blush.opacity(0.58))
-            line(
-                from: CGPoint(x: 6.78, y: faceY + 1.63 + pose.smileLift),
-                to: CGPoint(x: 9.22, y: faceY + 1.63 + pose.smileLift),
-                color: ink.opacity(0.72),
-                width: 0.18
-            )
-            ellipse(7.1, bodyY + 4.12, 1.8, 0.42, .white.opacity(0.68))
-
-            line(from: CGPoint(x: 6.15 - pose.footSpread * 0.45, y: bodyY + pose.bodyHeight - 0.2), to: CGPoint(x: 5.2 - pose.footSpread, y: footY), color: bodyShade, width: 0.78)
-            line(from: CGPoint(x: 9.85 + pose.footSpread * 0.45, y: bodyY + pose.bodyHeight - 0.2), to: CGPoint(x: 10.8 + pose.footSpread, y: footY), color: bodyShade, width: 0.78)
-            rounded(4.35 - pose.footSpread, footY - 0.18, 1.9, 0.62, 0.31, shoe)
-            rounded(9.75 + pose.footSpread, footY - 0.18, 1.9, 0.62, 0.31, shoe)
-
-            if isComplete {
-                ellipse(2.35, 2.2, 0.55, 0.55, WorkoutTheme.orange)
-                ellipse(12.95, 2.65, 0.55, 0.55, WorkoutTheme.orange)
-                ellipse(3.8, 1.05, 0.48, 0.48, .white.opacity(0.82))
-                ellipse(11.35, 1.15, 0.48, 0.48, .white.opacity(0.82))
+            switch mood {
+            case .normal:
+                px(5, 8, 2, 2, ink)
+                px(9, 8, 2, 2, ink)
+            case .effort:
+                px(5, 8, 2, 2, ink)
+                px(9, 8, 2, 2, ink)
+                px(7, 11, 2, 1, ink)
+                px(13, 5, 1, 2, sweat)
+            case .happy:
+                px(5, 8, 2, 1, ink)
+                px(9, 8, 2, 1, ink)
+                px(6, 11, 1, 1, ink)
+                px(7, 12, 2, 1, ink)
+                px(9, 11, 1, 1, ink)
+                px(1, 3, 1, 1, .white)
+                px(14, 4, 1, 1, .white)
+                px(2, 6, 1, 1, .white.opacity(0.85))
             }
 
             if size == .hero {
-                rounded(6.35, 11.9, 3.3, 0.35, 0.18, WorkoutTheme.orange.opacity(0.75))
+                let glowWidth = max(2, Int((CGFloat(10) * min(max(progress, 0.08), 1)).rounded()))
+                px(3, 15, glowWidth, 1, WorkoutTheme.orange.opacity(0.7))
             }
         }
-        .aspectRatio(16.0 / 13.0, contentMode: .fit)
-        .animation(.spring(response: 0.28, dampingFraction: 0.74), value: phase.rawValue)
-        .animation(.spring(response: 0.28, dampingFraction: 0.74), value: isComplete)
+        .aspectRatio(1, contentMode: .fit)
         .accessibilityHidden(true)
     }
-}
-
-private struct BuddyPose {
-    let bodyY: CGFloat
-    let bodyWidth: CGFloat
-    let bodyHeight: CGFloat
-    let footSpread: CGFloat
-    let kneeDrop: CGFloat
-    let armLift: CGFloat
-    let smileLift: CGFloat
 }
 
 private struct WorkoutSnapshotCard: View {
@@ -732,18 +562,18 @@ private struct WorkoutRecordRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text("\(record.actualReps)回")
-                    .font(.title3.weight(.black))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundStyle(WorkoutInk.primary)
                 Text(record.completedAt.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(WorkoutTheme.mutedInk)
             }
 
             Spacer()
 
             Text("\(Int(record.duration))秒")
                 .font(.caption.monospacedDigit().weight(.bold))
-                .foregroundStyle(.white.opacity(0.65))
+                .foregroundStyle(WorkoutTheme.mutedInk)
         }
     }
 }
@@ -756,12 +586,14 @@ struct ProgressBoardView: View {
     var body: some View {
         ZStack {
             WorkoutTheme.orange.ignoresSafeArea()
+            GlassBackdrop()
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .firstTextBaseline) {
                         Text("ログ")
-                            .font(.system(size: 42, weight: .black, design: .rounded))
+                            .font(.system(size: 38, weight: .semibold, design: .rounded))
+                            .foregroundStyle(WorkoutInk.primary)
                         Spacer()
                         if !store.records.isEmpty {
                             musicIndicator
@@ -790,15 +622,15 @@ struct ProgressBoardView: View {
                             Image(systemName: "rectangle.stack.badge.plus")
                                 .font(.system(size: 46, weight: .black))
                             Text("まだログがありません")
-                                .font(.title3.weight(.black))
-                            Text("ワークアウトを完了すると、自動でここに残ります。")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.white.opacity(0.62))
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            Text("完了すると自動で残ります")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(WorkoutTheme.mutedInk)
                         }
                         .frame(maxWidth: .infinity)
-                        .frame(height: 260)
-                        .foregroundStyle(.white)
-                        .background(.black, in: RoundedRectangle(cornerRadius: 8))
+                        .frame(height: 240)
+                        .foregroundStyle(WorkoutInk.primary)
+                        .liquidGlass(cornerRadius: 24)
                     } else {
                         LazyVStack(spacing: 0) {
                             ForEach(Array(store.records.enumerated()), id: \.element.id) { index, record in
@@ -815,10 +647,10 @@ struct ProgressBoardView: View {
                             }
                         }
                         .padding(.vertical, 8)
-                        .background(.black, in: RoundedRectangle(cornerRadius: 8))
+                        .liquidGlass(cornerRadius: 24)
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 22)
                 .padding(.bottom, 34)
             }
         }
@@ -873,30 +705,30 @@ private struct WeeklyBarChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("直近7日")
-                .font(.system(size: 18, weight: .black, design: .rounded))
-                .foregroundStyle(.white)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(WorkoutInk.primary)
 
             HStack(alignment: .bottom, spacing: 10) {
                 ForEach(bars) { bar in
                     VStack(spacing: 8) {
                         Text("\(bar.reps)")
-                            .font(.caption2.monospacedDigit().weight(.black))
-                            .foregroundStyle(.white.opacity(bar.reps > 0 ? 0.95 : 0.35))
+                            .font(.caption2.monospacedDigit().weight(.bold))
+                            .foregroundStyle(bar.reps > 0 ? WorkoutInk.primary : WorkoutTheme.mutedInk)
 
                         GeometryReader { proxy in
                             let height = max(4, proxy.size.height * (Double(bar.reps) / Double(maxReps)))
                             VStack {
                                 Spacer(minLength: 0)
                                 RoundedRectangle(cornerRadius: 6)
-                                    .fill(bar.reps > 0 ? WorkoutTheme.orange : Color.white.opacity(0.12))
+                                    .fill(bar.reps > 0 ? WorkoutTheme.deepOrange : Color.black.opacity(0.1))
                                     .frame(height: height)
                             }
                         }
                         .frame(height: 96)
 
                         Text(bar.weekdaySymbol)
-                            .font(.caption2.weight(.black))
-                            .foregroundStyle(bar.isToday ? WorkoutTheme.orange : .white.opacity(0.5))
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(bar.isToday ? WorkoutTheme.deepOrange : WorkoutTheme.mutedInk)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -904,7 +736,7 @@ private struct WeeklyBarChart: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.black, in: RoundedRectangle(cornerRadius: 8))
+        .liquidGlass(cornerRadius: 24)
     }
 }
 
@@ -934,25 +766,25 @@ private struct WorkoutTimelineRow: View {
 
             VStack(alignment: .leading, spacing: 7) {
                 Text("\(record.actualReps) / \(record.targetReps) 回")
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(.white)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(WorkoutInk.primary)
                 Text(record.completedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white.opacity(0.58))
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(WorkoutTheme.mutedInk)
                 HStack(spacing: 8) {
                     Label("\(Int(record.duration))秒", systemImage: "timer")
                     Label(record.exercise.title, systemImage: record.exercise.systemImage)
                 }
-                .font(.caption2.weight(.black))
-                .foregroundStyle(.white.opacity(0.46))
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(WorkoutTheme.mutedInk)
             }
             .padding(.top, 7)
 
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.caption.weight(.black))
-                .foregroundStyle(.white.opacity(0.36))
+                .font(.caption.weight(.bold))
+                .foregroundStyle(WorkoutTheme.mutedInk)
                 .padding(.top, 18)
         }
         .padding(.horizontal, 14)
@@ -1077,17 +909,19 @@ private struct LogMetric: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 30, weight: .black, design: .rounded))
+                .font(.system(size: 26, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+                .minimumScaleFactor(0.6)
+                .foregroundStyle(WorkoutInk.primary)
             Text(label)
-                .font(.caption.weight(.black))
-                .foregroundStyle(.white.opacity(0.62))
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundStyle(WorkoutTheme.mutedInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .foregroundStyle(.white)
-        .background(.black, in: RoundedRectangle(cornerRadius: 8))
+        .liquidGlass(cornerRadius: 18)
     }
 }

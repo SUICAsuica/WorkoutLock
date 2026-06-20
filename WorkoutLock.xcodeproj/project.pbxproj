@@ -14,17 +14,16 @@
 		A10000000000000000000055 /* ScreenShieldingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035 /* ScreenShieldingService.swift */; };
 		A10000000000000000000056 /* CameraPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000036 /* CameraPreview.swift */; };
 		A10000000000000000000057 /* WorkoutCameraModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000037 /* WorkoutCameraModel.swift */; };
-		A10000000000000000000062 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000042 /* Haptics.swift */; };
 		A10000000000000000000058 /* AppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000038 /* AppView.swift */; };
 		A10000000000000000000059 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000039 /* HomeView.swift */; };
 		A1000000000000000000005A /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003A /* ScheduleView.swift */; };
 		A1000000000000000000005B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003B /* SettingsView.swift */; };
 		A1000000000000000000005C /* WorkoutSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003C /* WorkoutSessionView.swift */; };
 		A1000000000000000000005D /* SkeletonOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003D /* SkeletonOverlay.swift */; };
-		A1000000000000000000009A /* WorkoutShareCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000009B /* WorkoutShareCard.swift */; };
 		A1000000000000000000005E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003E /* Assets.xcassets */; };
 		A1000000000000000000005F /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000003F /* OnboardingFlowView.swift */; };
 		A10000000000000000000060 /* LocationTriggerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000040 /* LocationTriggerService.swift */; };
+		A10000000000000000000062 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000042 /* Haptics.swift */; };
 		A10000000000000000000063 /* DatasetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000043 /* DatasetModels.swift */; };
 		A10000000000000000000064 /* DatasetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000044 /* DatasetStore.swift */; };
 		A10000000000000000000065 /* DataCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000045 /* DataCaptureView.swift */; };
@@ -41,6 +40,8 @@
 		A10000000000000000000070 /* music_heavy_lock.wav in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000076 /* music_heavy_lock.wav */; };
 		A10000000000000000000071 /* music_city_pop_jump.wav in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000077 /* music_city_pop_jump.wav */; };
 		A10000000000000000000072 /* music_final_sprint.wav in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000078 /* music_final_sprint.wav */; };
+		A1000000000000000000009A /* WorkoutShareCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000009B /* WorkoutShareCard.swift */; };
+		A1000000000000000000009C /* LiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000009D /* LiquidGlass.swift */; };
 		A20000000000000000000051 /* ShieldConfigurationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000031 /* ShieldConfigurationExtension.swift */; };
 		A20000000000000000000052 /* WorkoutLockShieldConfiguration.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* WorkoutLockShieldConfiguration.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A30000000000000000000051 /* ShieldActionExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000031 /* ShieldActionExtension.swift */; };
@@ -99,18 +100,17 @@
 		A10000000000000000000035 /* ScreenShieldingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenShieldingService.swift; sourceTree = "<group>"; };
 		A10000000000000000000036 /* CameraPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreview.swift; sourceTree = "<group>"; };
 		A10000000000000000000037 /* WorkoutCameraModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCameraModel.swift; sourceTree = "<group>"; };
-		A10000000000000000000042 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		A10000000000000000000038 /* AppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppView.swift; sourceTree = "<group>"; };
 		A10000000000000000000039 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A1000000000000000000003A /* ScheduleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleView.swift; sourceTree = "<group>"; };
 		A1000000000000000000003B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1000000000000000000003C /* WorkoutSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionView.swift; sourceTree = "<group>"; };
 		A1000000000000000000003D /* SkeletonOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonOverlay.swift; sourceTree = "<group>"; };
-		A1000000000000000000009B /* WorkoutShareCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutShareCard.swift; sourceTree = "<group>"; };
 		A1000000000000000000003E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1000000000000000000003F /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		A10000000000000000000040 /* LocationTriggerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationTriggerService.swift; sourceTree = "<group>"; };
-		A10000000000000000000041 /* WorkoutLock.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WorkoutLock/WorkoutLock.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000041 /* WorkoutLock/WorkoutLock.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WorkoutLock/WorkoutLock.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000042 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		A10000000000000000000043 /* DatasetModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatasetModels.swift; sourceTree = "<group>"; };
 		A10000000000000000000044 /* DatasetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatasetStore.swift; sourceTree = "<group>"; };
 		A10000000000000000000045 /* DataCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataCaptureView.swift; sourceTree = "<group>"; };
@@ -127,6 +127,8 @@
 		A10000000000000000000076 /* music_heavy_lock.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = music_heavy_lock.wav; sourceTree = "<group>"; };
 		A10000000000000000000077 /* music_city_pop_jump.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = music_city_pop_jump.wav; sourceTree = "<group>"; };
 		A10000000000000000000078 /* music_final_sprint.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = music_final_sprint.wav; sourceTree = "<group>"; };
+		A1000000000000000000009B /* WorkoutShareCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutShareCard.swift; sourceTree = "<group>"; };
+		A1000000000000000000009D /* LiquidGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlass.swift; sourceTree = "<group>"; };
 		A2000000000000000000000A /* WorkoutLockShieldConfiguration.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WorkoutLockShieldConfiguration.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000031 /* ShieldConfigurationExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldConfigurationExtension.swift; sourceTree = "<group>"; };
 		A20000000000000000000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -180,7 +182,7 @@
 				A20000000000000000000005 /* WorkoutLockShieldConfiguration */,
 				A30000000000000000000005 /* WorkoutLockShieldAction */,
 				A40000000000000000000005 /* WorkoutLockLiveActivity */,
-				A10000000000000000000041 /* WorkoutLock.entitlements */,
+				A10000000000000000000041 /* WorkoutLock/WorkoutLock.entitlements */,
 				A10000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -222,6 +224,7 @@
 				A1000000000000000000003C /* WorkoutSessionView.swift */,
 				A1000000000000000000003D /* SkeletonOverlay.swift */,
 				A1000000000000000000009B /* WorkoutShareCard.swift */,
+				A1000000000000000000009D /* LiquidGlass.swift */,
 				A1000000000000000000003F /* OnboardingFlowView.swift */,
 				A10000000000000000000045 /* DataCaptureView.swift */,
 			);
@@ -251,14 +254,6 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		A1000000000000000000000B /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				A10000000000000000000048 /* WorkoutLiveActivityAttributes.swift */,
-			);
-			path = Shared;
-			sourceTree = "<group>";
-		};
 		A10000000000000000000009 /* WorkoutLock/Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -266,6 +261,14 @@
 				A1000000000000000000000C /* Music */,
 			);
 			path = WorkoutLock/Resources;
+			sourceTree = "<group>";
+		};
+		A1000000000000000000000B /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000048 /* WorkoutLiveActivityAttributes.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		A1000000000000000000000C /* Music */ = {
@@ -483,6 +486,7 @@
 				A1000000000000000000005C /* WorkoutSessionView.swift in Sources */,
 				A1000000000000000000005D /* SkeletonOverlay.swift in Sources */,
 				A1000000000000000000009A /* WorkoutShareCard.swift in Sources */,
+				A1000000000000000000009C /* LiquidGlass.swift in Sources */,
 				A1000000000000000000005F /* OnboardingFlowView.swift in Sources */,
 				A10000000000000000000065 /* DataCaptureView.swift in Sources */,
 			);
@@ -650,8 +654,8 @@
 		A10000000000000000000024 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = WorkoutLock/WorkoutLock.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -685,8 +689,8 @@
 		A10000000000000000000025 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = WorkoutLock/WorkoutLock.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;

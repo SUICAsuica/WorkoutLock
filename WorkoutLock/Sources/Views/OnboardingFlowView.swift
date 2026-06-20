@@ -35,10 +35,11 @@ struct OnboardingFlowView: View {
     var body: some View {
         ZStack {
             WorkoutTheme.orange.ignoresSafeArea()
+            GlassBackdrop()
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 26) {
-                    progressHeader
+                VStack(alignment: .leading, spacing: 24) {
+                    storyHeader
 
                     switch step {
                     case .quickTrial:
@@ -113,23 +114,32 @@ struct OnboardingFlowView: View {
         store.triggerPreference == .homeArrival || store.triggerPreference == .both
     }
 
-    private var progressHeader: some View {
-        HStack {
-            Text("SETUP")
-                .font(.caption.weight(.black))
-                .tracking(2)
-            Spacer()
-            Text("\(step.rawValue + 1)/10")
-                .font(.caption.monospacedDigit().weight(.black))
+    private var storyHeader: some View {
+        VStack(spacing: 18) {
+            HStack(spacing: 5) {
+                ForEach(0..<10, id: \.self) { index in
+                    Capsule()
+                        .fill(index <= step.rawValue ? Color.black.opacity(0.82) : Color.white.opacity(0.32))
+                        .frame(height: 5)
+                }
+            }
+
+            WorkoutBuddyView(
+                phase: .ready,
+                progress: Double(step.rawValue + 1) / 10.0,
+                isComplete: step == .trigger,
+                size: .compact
+            )
+            .frame(height: 96)
         }
-        .foregroundStyle(WorkoutTheme.mutedInk)
+        .padding(.bottom, 2)
     }
 
     private var quickTrialStep: some View {
         VStack(alignment: .leading, spacing: 24) {
             OnboardingTitle(
-                title: "まず5回だけ試す",
-                subtitle: "設定より先に、カメラでスクワットが数えられるか確認します。ここで取った動きは、あとで判定補正に使います。"
+                title: "まず5回だけ",
+                subtitle: "カメラで数えます"
             )
 
             VStack(alignment: .leading, spacing: 14) {
@@ -178,8 +188,8 @@ struct OnboardingFlowView: View {
     private var signInStep: some View {
         VStack(alignment: .leading, spacing: 28) {
             OnboardingTitle(
-                title: "まずは本人確認",
-                subtitle: "記録とプランをあなたの端末に紐づけます。"
+                title: "本人確認",
+                subtitle: "記録を端末に紐づけます"
             )
 
             SignInWithAppleButton(.continue) { request in
@@ -257,8 +267,8 @@ struct OnboardingFlowView: View {
     private var consentStep: some View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
-                title: "データ取得の同意",
-                subtitle: "身長・体重・ワークアウトログを使って、回数と期間を調整します。"
+                title: "データの同意",
+                subtitle: ""
             )
 
             VStack(alignment: .leading, spacing: 12) {
@@ -295,7 +305,7 @@ struct OnboardingFlowView: View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
                 title: "今の状態",
-                subtitle: "ざっくりで大丈夫です。プランの初期回数を決めます。"
+                subtitle: "ざっくりでOK"
             )
 
             VStack(spacing: 18) {
@@ -340,7 +350,7 @@ struct OnboardingFlowView: View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
                 title: "目標",
-                subtitle: "目標体重と続ける期間から、回数と増加ペースを逆算します。"
+                subtitle: "回数を逆算します"
             )
 
             VStack(spacing: 18) {
@@ -415,7 +425,7 @@ struct OnboardingFlowView: View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
                 title: "3つのプラン",
-                subtitle: "目標期間に合わせて、継続重視・目標ペース・強制力高めを出しています。"
+                subtitle: ""
             )
 
             ForEach(store.planOptions) { plan in
@@ -435,8 +445,8 @@ struct OnboardingFlowView: View {
     private var commitmentBlockStep: some View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
-                title: "自分に縛りをつけましょう",
-                subtitle: "全てのアプリをブロックすることで筋トレから逃れられなくできます💪"
+                title: "縛りをつける",
+                subtitle: "逃げ道アプリをロック"
             )
 
             VStack(alignment: .leading, spacing: 16) {
@@ -542,8 +552,8 @@ struct OnboardingFlowView: View {
     private var commitmentTriggerStep: some View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
-                title: "いつ・どこでやる？",
-                subtitle: "時間帯を選んで、実際にやる場所を登録します。場所は複数追加できます。"
+                title: "いつ・どこで？",
+                subtitle: ""
             )
 
             triggerSetupPanel
@@ -562,7 +572,7 @@ struct OnboardingFlowView: View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
                 title: "最初の5回",
-                subtitle: "カメラを置いて全身が入る距離まで離れたら、まず5回だけやります。"
+                subtitle: "全身が入る距離で"
             )
 
             if let plan = store.selectedPlan {
@@ -690,7 +700,7 @@ struct OnboardingFlowView: View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
                 title: "設定完了",
-                subtitle: "チュートリアルは完了です。明日から同じ条件でロックをかけます。"
+                subtitle: "明日から同じ条件でロック"
             )
 
             VStack(alignment: .leading, spacing: 18) {
@@ -746,7 +756,8 @@ private struct FullWidthPrimaryLabel: View {
         .frame(minHeight: minHeight)
         .padding(.horizontal, 16)
         .foregroundStyle(.white)
-        .background(.black, in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.black.opacity(0.88), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.16), lineWidth: 1))
         .contentShape(Rectangle())
     }
 }
@@ -759,17 +770,14 @@ private struct FullWidthSecondaryLabel: View {
         HStack {
             Spacer()
             Text(title)
-                .font(.headline.weight(.black))
+                .font(.headline.weight(.semibold))
             Spacer()
         }
         .frame(maxWidth: .infinity)
         .frame(minHeight: minHeight)
         .padding(.horizontal, 16)
-        .foregroundStyle(.black)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(.black, lineWidth: 3)
-        )
+        .foregroundStyle(Color(red: 0.23, green: 0.11, blue: 0.02))
+        .liquidGlass(cornerRadius: 20)
         .contentShape(Rectangle())
     }
 }
@@ -956,14 +964,18 @@ private struct OnboardingTitle: View {
     let subtitle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 44, weight: .black, design: .rounded))
+                .font(.system(size: 34, weight: .semibold, design: .rounded))
+                .foregroundStyle(Color(red: 0.23, green: 0.11, blue: 0.02))
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
-            Text(subtitle)
-                .font(.headline.weight(.bold))
-                .foregroundStyle(WorkoutTheme.mutedInk)
+            if !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(WorkoutTheme.mutedInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 }
@@ -1145,7 +1157,28 @@ private struct PlanMetric: View {
 
 private extension View {
     func onboardingPanel() -> some View {
-        workoutPanelSurface()
+        self
+            .padding(18)
+            .liquidGlass(cornerRadius: 24)
     }
+}
 
+/// オレンジ背景にぼかした色ブロブを置き、すりガラスが映える下地を作る。
+struct GlassBackdrop: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color(red: 1.0, green: 0.48, blue: 0.10))
+                .frame(width: 320, height: 320)
+                .blur(radius: 80)
+                .offset(x: -120, y: -260)
+            Circle()
+                .fill(Color(red: 1.0, green: 0.85, blue: 0.55))
+                .frame(width: 300, height: 300)
+                .blur(radius: 90)
+                .offset(x: 130, y: 280)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
 }
