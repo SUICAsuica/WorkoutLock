@@ -77,7 +77,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("音量")
-                                    .foregroundStyle(WorkoutTheme.mutedInk)
+                                    .foregroundStyle(Color.black.opacity(0.62))
                                 Spacer()
                                 Text("\(Int(store.workoutMusicVolume * 100))%")
                                     .fontWeight(.black)
@@ -104,7 +104,7 @@ struct SettingsView: View {
                         )
                         Text(shielding.capabilityText)
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(WorkoutTheme.mutedInk)
+                            .foregroundStyle(Color.black.opacity(0.62))
 
                         Toggle("アプリブロックをオン", isOn: $store.appBlockingEnabled)
                             .font(.headline.weight(.bold))
@@ -146,6 +146,28 @@ struct SettingsView: View {
                         SettingsLine(title: "解除条件", value: "\(store.targetReps)回")
                     }
                     .settingsPanel()
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("その他")
+                            .font(.title2.weight(.black))
+
+                        Button {
+                            Haptics.selection()
+                            store.onboardingCompleted = false
+                        } label: {
+                            Label("オンボーディングをやり直す", systemImage: "arrow.counterclockwise")
+                                .font(.headline.weight(.black))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.black)
+
+                        Text("記録・ログ・設定は残したまま、最初の流れをもう一度見られます。")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.black.opacity(0.62))
+                    }
+                    .settingsPanel()
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 32)
@@ -175,7 +197,7 @@ private struct SettingsLine: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(WorkoutTheme.mutedInk)
+                .foregroundStyle(Color.black.opacity(0.62))
             Spacer()
             Text(value)
                 .fontWeight(.black)
@@ -194,11 +216,11 @@ private struct BlockingReadinessRow: View {
         HStack {
             Text(title)
                 .font(.subheadline.weight(.black))
-                .foregroundStyle(WorkoutTheme.mutedInk)
+                .foregroundStyle(Color.black.opacity(0.62))
             Spacer()
             Text(value)
                 .font(.headline.weight(.black))
-                .foregroundStyle(isReady ? .black : WorkoutTheme.mutedInk)
+                .foregroundStyle(isReady ? WorkoutInk.primary : Color.black.opacity(0.62))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
                 .background(
@@ -211,6 +233,8 @@ private struct BlockingReadinessRow: View {
 
 private extension View {
     func settingsPanel() -> some View {
-        workoutPanelSurface()
+        self
+            .padding(20)
+            .liquidGlass(cornerRadius: 24)
     }
 }

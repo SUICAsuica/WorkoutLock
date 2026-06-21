@@ -103,12 +103,12 @@ struct ScheduleView: View {
 
                         Text(store.notificationMessage)
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(WorkoutTheme.mutedInk)
+                            .foregroundStyle(Color.black.opacity(0.62))
 
                         if store.triggerPreference == .homeArrival {
                             Text("帰宅後だけを使う場合、毎日9:30のような時刻通知は予約しません。")
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(WorkoutTheme.mutedInk)
+                                .foregroundStyle(Color.black.opacity(0.62))
                         }
                     }
                     .schedulePanel()
@@ -155,7 +155,7 @@ struct ScheduleView: View {
                         if store.triggerLocations.isEmpty {
                             Text(locationTrigger.statusText)
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(WorkoutTheme.mutedInk)
+                                .foregroundStyle(Color.black.opacity(0.62))
                         } else {
                             ForEach(store.triggerLocations) { location in
                                 HStack {
@@ -164,7 +164,7 @@ struct ScheduleView: View {
                                             .font(.headline.weight(.black))
                                         Text(location.shortLabel)
                                             .font(.caption.monospacedDigit().weight(.bold))
-                                            .foregroundStyle(WorkoutTheme.mutedInk)
+                                            .foregroundStyle(Color.black.opacity(0.62))
                                     }
                                     Spacer()
                                     Button {
@@ -198,7 +198,9 @@ struct ScheduleView: View {
 
 private extension View {
     func schedulePanel() -> some View {
-        workoutPanelSurface()
+        self
+            .padding(20)
+            .liquidGlass(cornerRadius: 24)
     }
 }
 
@@ -209,7 +211,7 @@ private struct SettingsLikeLine: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(WorkoutTheme.mutedInk)
+                .foregroundStyle(Color.black.opacity(0.62))
             Spacer()
             Text(value)
                 .fontWeight(.black)

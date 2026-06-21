@@ -5,7 +5,7 @@ import SwiftUI
 import FamilyControls
 #endif
 
-private enum OnboardingStep: Int {
+private enum OnboardingStep: Int, CaseIterable {
     case quickTrial
     case signIn
     case consent
@@ -14,23 +14,44 @@ private enum OnboardingStep: Int {
     case plan
     case commitmentBlock
     case commitmentTrigger
-    case tutorialIntro
     case trigger
+}
+
+private enum OnboardingPalette {
+    static let ink = Color(red: 0.23, green: 0.11, blue: 0.02)
+}
+
+private enum GoalDurationOption: Int, CaseIterable, Identifiable {
+    case three = 3
+    case six = 6
+    case twelve = 12
+
+    var id: Int { rawValue }
+    var months: Int { rawValue }
+
+    var title: String {
+        "\(rawValue)ヶ月"
+    }
+
+    var badge: String? {
+        self == .six ? "おすすめ" : nil
+    }
 }
 
 struct OnboardingFlowView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var locationTrigger: LocationTriggerService
     @StateObject private var shielding = ScreenShieldingService()
+    @StateObject private var onboardingMusic = WorkoutMusicPlayer()
     @State private var step: OnboardingStep = .quickTrial
     @State private var showTutorial = false
-    @State private var nextStepAfterTutorial: OnboardingStep = .trigger
     @State private var signInErrorMessage: String?
     @State private var showBlockPicker = false
     @State private var isGeneratingPlan = false
     @State private var locationKind: TriggerLocationKind = .home
     @State private var locationDelayMinutes = 10
     @State private var showMapPicker = false
+    @State private var buddyPopToken = 0
 
     var body: some View {
         ZStack {
@@ -58,8 +79,6 @@ struct OnboardingFlowView: View {
                         commitmentBlockStep
                     case .commitmentTrigger:
                         commitmentTriggerStep
-                    case .tutorialIntro:
-                        tutorialIntroStep
                     case .trigger:
                         triggerStep
                     }
@@ -77,9 +96,32 @@ struct OnboardingFlowView: View {
             ) {
                 store.markTutorialCompleted()
                 showTutorial = false
-                step = nextStepAfterTutorial
+                advance(to: .signIn)
             }
             .environmentObject(store)
+        }
+        .onAppear {
+            startOnboardingMusic()
+        }
+        .onDisappear {
+            onboardingMusic.stop()
+        }
+        .onChange(of: showTutorial) { _, isPresented in
+            if isPresented {
+                onboardingMusic.stop()
+            } else {
+                startOnboardingMusic()
+            }
+        }
+        .onChange(of: store.workoutMusicEnabled) { _, isEnabled in
+            if isEnabled {
+                startOnboardingMusic()
+            } else {
+                onboardingMusic.stop()
+            }
+        }
+        .onChange(of: store.workoutMusicVolume) { _, volume in
+            onboardingMusic.updateVolume(volume)
         }
         .onChange(of: locationTrigger.capturedHomeLocation) { _, location in
             guard let location else { return }
@@ -114,6 +156,14 @@ struct OnboardingFlowView: View {
         store.triggerPreference == .homeArrival || store.triggerPreference == .both
     }
 
+    private var stepIndex: Int {
+        OnboardingStep.allCases.firstIndex(of: step) ?? 0
+    }
+
+    private var stepCount: Int {
+        OnboardingStep.allCases.count
+    }
+
     private var userAgeBinding: Binding<Double> {
         Binding(
             get: { Double(store.userAge) },
@@ -124,22 +174,45 @@ struct OnboardingFlowView: View {
     private var storyHeader: some View {
         VStack(spacing: 18) {
             HStack(spacing: 5) {
-                ForEach(0..<10, id: \.self) { index in
+                ForEach(0..<stepCount, id: \.self) { index in
                     Capsule()
-                        .fill(index <= step.rawValue ? Color.black.opacity(0.82) : Color.white.opacity(0.32))
+                        .fill(index <= stepIndex ? Color.black.opacity(0.82) : Color.white.opacity(0.32))
                         .frame(height: 5)
                 }
             }
 
-            WorkoutBuddyView(
-                phase: .ready,
-                progress: Double(step.rawValue + 1) / 10.0,
+            AnimatedWorkoutBuddyHeader(
+                stepIndex: stepIndex,
+                stepCount: stepCount,
                 isComplete: step == .trigger,
-                size: .compact
+                popToken: buddyPopToken
             )
-            .frame(height: 96)
         }
         .padding(.bottom, 2)
+    }
+
+    private func advance(to nextStep: OnboardingStep) {
+        guard step != nextStep else { return }
+        step = nextStep
+        buddyPopToken += 1
+        Haptics.lightTap()
+    }
+
+    private func startOnboardingMusic() {
+        guard store.workoutMusicEnabled, !showTutorial else { return }
+
+        let track = WorkoutMusicTrack.randomWorkoutTrack(fallback: store.selectedMusicTrack)
+        let bundledTracks = WorkoutMusicTrack.allCases.filter { $0.bundledURL() != nil }
+        let fallbackTracks = (WorkoutMusicTrack.availableRandomPool() + bundledTracks).filter { $0 != track }
+
+        if let startedTrack = onboardingMusic.start(
+            track: track,
+            volume: store.workoutMusicVolume,
+            isEnabled: true,
+            fallbackTracks: fallbackTracks
+        ) {
+            WorkoutMusicTrack.saveLastWorkoutTrack(startedTrack)
+        }
     }
 
     private var quickTrialStep: some View {
@@ -162,20 +235,16 @@ struct OnboardingFlowView: View {
                             .font(.title3.weight(.black))
                         Text("iPhoneを少し離して置いて、まずは5回だけ。")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(WorkoutTheme.mutedInk)
+                            .foregroundStyle(Color.black.opacity(0.62))
                     }
                 }
 
-                if let calibration = store.tutorialCalibration {
-                    SettingsLineLike(title: "前回の判定品質", value: "\(calibration.qualityScore)%")
-                    SettingsLineLike(title: "平均ペース", value: "\(calibration.secondsPerRep.formatted(.number.precision(.fractionLength(1))))秒/回")
-                }
             }
             .onboardingPanel()
 
             Button {
                 Haptics.mediumTap()
-                nextStepAfterTutorial = .signIn
+                onboardingMusic.stop()
                 showTutorial = true
             } label: {
                 FullWidthPrimaryLabel(title: "5回だけ試す", systemImage: "play.fill", minHeight: 72)
@@ -184,7 +253,7 @@ struct OnboardingFlowView: View {
 
             Button {
                 Haptics.selection()
-                step = .signIn
+                advance(to: .signIn)
             } label: {
                 FullWidthSecondaryLabel(title: "設定から始める")
             }
@@ -200,13 +269,14 @@ struct OnboardingFlowView: View {
             )
 
             SignInWithAppleButton(.continue) { request in
+                Haptics.selection()
                 request.requestedScopes = [.fullName, .email]
             } onCompletion: { result in
                 switch result {
                 case .success:
                     signInErrorMessage = nil
                     store.markAppleSignedIn()
-                    step = .consent
+                    advance(to: .consent)
                 case .failure(let error):
                     signInErrorMessage = appleSignInErrorMessage(for: error)
                 }
@@ -218,7 +288,7 @@ struct OnboardingFlowView: View {
             if let signInErrorMessage {
                 Text(signInErrorMessage)
                     .font(.caption.weight(.black))
-                    .foregroundStyle(WorkoutTheme.mutedInk)
+                    .foregroundStyle(Color.black.opacity(0.62))
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.black.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
@@ -229,7 +299,7 @@ struct OnboardingFlowView: View {
                 Haptics.selection()
                 signInErrorMessage = nil
                 store.markAppleSignedIn()
-                step = .consent
+                advance(to: .consent)
             } label: {
                 FullWidthSecondaryLabel(title: "Appleログインなしで開発確認")
             }
@@ -280,7 +350,7 @@ struct OnboardingFlowView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 ConsentLine(text: "体重や目標体重から3つのプランを作る")
-                ConsentLine(text: "Apple Visionの骨格ログを自動保存して精度改善に使う")
+                ConsentLine(text: "Apple Visionの骨格ログを端末に保存する")
                 ConsentLine(text: "ワークアウト完了時のカメラ映像をログに残す")
                 ConsentLine(text: "同意しなくても、手動設定で続けられる")
             }
@@ -290,7 +360,7 @@ struct OnboardingFlowView: View {
                 Button {
                     Haptics.selection()
                     store.setDataConsent(false)
-                    step = .profile
+                    advance(to: .profile)
                 } label: {
                     FullWidthSecondaryLabel(title: "同意しない")
                 }
@@ -299,7 +369,7 @@ struct OnboardingFlowView: View {
                 Button {
                     Haptics.selection()
                     store.setDataConsent(true)
-                    step = .profile
+                    advance(to: .profile)
                 } label: {
                     FullWidthPrimaryLabel(title: "同意する", systemImage: "checkmark")
                 }
@@ -322,6 +392,9 @@ struct OnboardingFlowView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: store.userGender) { _, _ in
+                    Haptics.selection()
+                }
 
                 WheelNumberPickerRow(
                     title: "身長",
@@ -356,12 +429,15 @@ struct OnboardingFlowView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: store.fitnessLevel) { _, _ in
+                    Haptics.selection()
+                }
             }
             .onboardingPanel()
 
             Button {
                 Haptics.selection()
-                step = .goal
+                advance(to: .goal)
             } label: {
                 FullWidthPrimaryLabel(title: "次へ", systemImage: "arrow.right")
             }
@@ -373,7 +449,7 @@ struct OnboardingFlowView: View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
                 title: "目標",
-                subtitle: "回数を逆算します"
+                subtitle: "期間とペースを選ぶ"
             )
 
             VStack(spacing: 18) {
@@ -394,16 +470,22 @@ struct OnboardingFlowView: View {
                         .monospacedDigit()
                 }
 
-                Stepper(value: $store.goalDurationMonths, in: 1...12) {
-                    HStack {
-                        Text("続ける期間")
-                        Spacer()
-                        Text("\(store.goalDurationMonths)ヶ月")
-                            .font(.title2.weight(.black))
-                            .monospacedDigit()
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("続ける期間")
+                        .font(.headline.weight(.black))
+
+                    HStack(spacing: 10) {
+                        ForEach(GoalDurationOption.allCases) { option in
+                            GoalDurationOptionButton(
+                                option: option,
+                                isSelected: store.goalDurationMonths == option.months
+                            ) {
+                                Haptics.selection()
+                                store.goalDurationMonths = option.months
+                            }
+                        }
                     }
                 }
-                .font(.headline.weight(.black))
 
                 Picker("食事", selection: $store.foodPreference) {
                     ForEach(FoodPreference.allCases) { preference in
@@ -411,6 +493,9 @@ struct OnboardingFlowView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: store.foodPreference) { _, _ in
+                    Haptics.selection()
+                }
 
                 Picker("週の回数", selection: $store.trainingDaysPerWeek) {
                     ForEach(2...5, id: \.self) { days in
@@ -418,13 +503,16 @@ struct OnboardingFlowView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: store.trainingDaysPerWeek) { _, _ in
+                    Haptics.selection()
+                }
 
                 if let result = store.currentPlanResult {
-                    Text("目安: 週\(store.trainingDaysPerWeek)回・1回\(result.repsPerTrainingDay)回 / 食事 \(result.dietLevel.title)")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(WorkoutTheme.mutedInk)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
+                    PlanEstimateSummary(
+                        result: result,
+                        daysPerWeek: store.trainingDaysPerWeek,
+                        durationMonths: store.goalDurationMonths
+                    )
                 }
             }
             .onboardingPanel()
@@ -461,7 +549,7 @@ struct OnboardingFlowView: View {
                 store.refreshPlanOptions()
                 isGeneratingPlan = false
                 Haptics.success()
-                step = .plan
+                advance(to: .plan)
             }
         }
     }
@@ -478,9 +566,9 @@ struct OnboardingFlowView: View {
                     Haptics.mediumTap()
                     store.selectPlan(plan)
                     store.appBlockingEnabled = true
-                    step = .commitmentBlock
+                    advance(to: .commitmentBlock)
                 } label: {
-                    PlanOptionCard(plan: plan)
+                    PlanOptionCard(plan: plan, daysPerWeek: store.trainingDaysPerWeek)
                 }
                 .buttonStyle(.plain)
             }
@@ -507,13 +595,16 @@ struct OnboardingFlowView: View {
                             .font(.title2.weight(.black))
                         Text(store.appBlockingEnabled ? "オン" : "オフ")
                             .font(.headline.weight(.black))
-                            .foregroundStyle(store.appBlockingEnabled ? .black : WorkoutTheme.mutedInk)
+                            .foregroundStyle(store.appBlockingEnabled ? WorkoutInk.primary : Color.black.opacity(0.62))
                     }
 
                     Spacer()
 
                     Toggle("", isOn: $store.appBlockingEnabled)
                         .labelsHidden()
+                        .onChange(of: store.appBlockingEnabled) { _, _ in
+                            Haptics.selection()
+                        }
                 }
 
                 SettingsLineLike(
@@ -539,11 +630,11 @@ struct OnboardingFlowView: View {
 
                         Text(shielding.selectionSummary)
                             .font(.system(size: 26, weight: .black, design: .rounded))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(WorkoutInk.primary)
 
                         Text("SNS・動画・ブラウザなど、逃げ道になるアプリをまとめて選べます。")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(WorkoutTheme.mutedInk)
+                            .foregroundStyle(Color.black.opacity(0.62))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
@@ -568,7 +659,7 @@ struct OnboardingFlowView: View {
                         Spacer()
                         Image(systemName: "arrow.up.forward")
                             .font(.caption.weight(.black))
-                            .foregroundStyle(WorkoutTheme.mutedInk)
+                            .foregroundStyle(Color.black.opacity(0.62))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 14)
@@ -580,13 +671,13 @@ struct OnboardingFlowView: View {
 
                 Text(shielding.statusText)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(WorkoutTheme.mutedInk)
+                    .foregroundStyle(Color.black.opacity(0.62))
             }
             .onboardingPanel()
 
             Button {
                 Haptics.selection()
-                step = .commitmentTrigger
+                advance(to: .commitmentTrigger)
             } label: {
                 FullWidthPrimaryLabel(title: "次へ", systemImage: "arrow.right")
             }
@@ -605,36 +696,9 @@ struct OnboardingFlowView: View {
 
             Button {
                 Haptics.selection()
-                step = .tutorialIntro
+                advance(to: .trigger)
             } label: {
-                FullWidthPrimaryLabel(title: "チュートリアルへ", systemImage: "arrow.right")
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private var tutorialIntroStep: some View {
-        VStack(alignment: .leading, spacing: 22) {
-            OnboardingTitle(
-                title: "最初の5回",
-                subtitle: "全身が入る距離で"
-            )
-
-            if let plan = store.selectedPlan {
-                Text("今のあなた。\(plan.durationMonths)ヶ月後に見返して、達成感を味わおう。")
-                    .font(.headline.weight(.black))
-                    .foregroundStyle(WorkoutTheme.mutedInk)
-            }
-
-            Button {
-                Haptics.mediumTap()
-                nextStepAfterTutorial = .trigger
-                showTutorial = true
-                Task { @MainActor in
-                    shielding.applyShielding(isEnabled: store.appBlockingEnabled)
-                }
-            } label: {
-                FullWidthPrimaryLabel(title: "チュートリアル開始", systemImage: "play.fill", minHeight: 72)
+                FullWidthPrimaryLabel(title: "設定確認へ", systemImage: "arrow.right")
             }
             .buttonStyle(.plain)
         }
@@ -655,10 +719,13 @@ struct OnboardingFlowView: View {
 
                 Text(store.workoutTimeBand.subtitle)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(WorkoutTheme.mutedInk)
+                    .foregroundStyle(Color.black.opacity(0.62))
 
                 Stepper("ここに着いてから \(locationDelayMinutes)分後", value: $locationDelayMinutes, in: 10...60, step: 5)
                     .font(.headline.weight(.black))
+                    .onChange(of: locationDelayMinutes) { _, _ in
+                        Haptics.selection()
+                    }
 
                 Picker("場所名", selection: $locationKind) {
                     ForEach(TriggerLocationKind.allCases) { kind in
@@ -666,6 +733,9 @@ struct OnboardingFlowView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+                .onChange(of: locationKind) { _, _ in
+                    Haptics.selection()
+                }
 
                 HStack(spacing: 10) {
                     Button {
@@ -707,7 +777,7 @@ struct OnboardingFlowView: View {
                 if store.triggerLocations.isEmpty {
                     Text(locationTrigger.statusText)
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(WorkoutTheme.mutedInk)
+                        .foregroundStyle(Color.black.opacity(0.62))
                 } else {
                     ForEach(store.triggerLocations) { location in
                         HStack {
@@ -716,7 +786,7 @@ struct OnboardingFlowView: View {
                                     .font(.subheadline.weight(.black))
                                 Text(location.shortLabel)
                                     .font(.caption.monospacedDigit().weight(.bold))
-                                    .foregroundStyle(WorkoutTheme.mutedInk)
+                                    .foregroundStyle(Color.black.opacity(0.62))
                             }
                             Spacer()
                             Button {
@@ -735,7 +805,7 @@ struct OnboardingFlowView: View {
 
                 Text("その日1回やったら、その日はもう発動しません。")
                     .font(.caption.weight(.black))
-                    .foregroundStyle(WorkoutTheme.mutedInk)
+                    .foregroundStyle(Color.black.opacity(0.62))
             }
             .onboardingPanel()
         }
@@ -767,7 +837,7 @@ struct OnboardingFlowView: View {
 
                 Text(shielding.statusText)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(WorkoutTheme.mutedInk)
+                    .foregroundStyle(Color.black.opacity(0.62))
             }
             .onboardingPanel()
 
@@ -781,6 +851,44 @@ struct OnboardingFlowView: View {
                 FullWidthPrimaryLabel(title: "設定完了", systemImage: "checkmark")
             }
             .buttonStyle(.plain)
+        }
+    }
+}
+
+private struct AnimatedWorkoutBuddyHeader: View {
+    let stepIndex: Int
+    let stepCount: Int
+    let isComplete: Bool
+    let popToken: Int
+
+    @State private var isIdleRaised = false
+    @State private var popScale: CGFloat = 1
+
+    var body: some View {
+        WorkoutBuddyView(
+            phase: .ready,
+            progress: Double(stepIndex + 1) / Double(max(1, stepCount)),
+            isComplete: isComplete,
+            size: .compact
+        )
+        .frame(height: 96)
+        .offset(y: isIdleRaised ? -5 : 3)
+        .scaleEffect(popScale)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                isIdleRaised = true
+            }
+        }
+        .onChange(of: popToken) { _, _ in
+            withAnimation(.spring(response: 0.18, dampingFraction: 0.55)) {
+                popScale = 1.12
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(150))
+                withAnimation(.spring(response: 0.22, dampingFraction: 0.72)) {
+                    popScale = 1
+                }
+            }
         }
     }
 }
@@ -824,6 +932,109 @@ private struct FullWidthSecondaryLabel: View {
         .foregroundStyle(Color(red: 0.23, green: 0.11, blue: 0.02))
         .liquidGlass(cornerRadius: 20)
         .contentShape(Rectangle())
+    }
+}
+
+private struct GoalDurationOptionButton: View {
+    let option: GoalDurationOption
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 6) {
+                Text(option.title)
+                    .font(.title3.monospacedDigit().weight(.black))
+                    .lineLimit(1)
+
+                Text(option.badge ?? " ")
+                    .font(.caption2.weight(.black))
+                    .foregroundStyle(isSelected ? .white.opacity(0.78) : Color.black.opacity(0.62))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 76)
+            .foregroundStyle(isSelected ? .white : OnboardingPalette.ink)
+            .background(isSelected ? Color.black.opacity(0.88) : Color.white.opacity(0.22), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(isSelected ? .white.opacity(0.18) : .black.opacity(0.12), lineWidth: 1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(option.badge == nil ? option.title : "\(option.title)、\(option.badge!)"))
+    }
+}
+
+private struct PlanEstimateSummary: View {
+    let result: PlanResult
+    let daysPerWeek: Int
+    let durationMonths: Int
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("目安")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(OnboardingPalette.ink)
+
+                Spacer()
+
+                Text(result.mode.title)
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(OnboardingPalette.ink)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(.white.opacity(0.28), in: Capsule())
+            }
+
+            LazyVGrid(columns: columns, spacing: 10) {
+                PlanEstimateChip(value: "\(daysPerWeek)", unit: "回", label: "週")
+                PlanEstimateChip(value: "\(result.repsPerTrainingDay)", unit: "回", label: "1回")
+                PlanEstimateChip(value: result.dietLevel.title, unit: "", label: "食事")
+                PlanEstimateChip(value: "\(durationMonths)", unit: "ヶ月", label: "期間")
+            }
+        }
+        .padding(.top, 2)
+    }
+}
+
+private struct PlanEstimateChip: View {
+    let value: String
+    let unit: String
+    let label: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label)
+                .font(.caption.weight(.black))
+                .foregroundStyle(Color.black.opacity(0.62))
+
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(value)
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundStyle(OnboardingPalette.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+                    .monospacedDigit()
+
+                if !unit.isEmpty {
+                    Text(unit)
+                        .font(.subheadline.weight(.black))
+                        .foregroundStyle(OnboardingPalette.ink.opacity(0.82))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .liquidGlass(cornerRadius: 16)
     }
 }
 
@@ -939,10 +1150,10 @@ private struct LocationMapPickerView: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(item.name ?? "名称なし")
                                     .font(.subheadline.weight(.black))
-                                    .foregroundStyle(.black)
+                                    .foregroundStyle(WorkoutInk.primary)
                                 Text(item.placemark.title ?? "")
                                     .font(.caption.weight(.bold))
-                                    .foregroundStyle(WorkoutTheme.mutedInk)
+                                    .foregroundStyle(Color.black.opacity(0.62))
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1018,7 +1229,7 @@ private struct OnboardingTitle: View {
             if !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(WorkoutTheme.mutedInk)
+                    .foregroundStyle(Color.black.opacity(0.62))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1061,7 +1272,7 @@ private struct SettingsLineLike: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(WorkoutTheme.mutedInk)
+                .foregroundStyle(Color.black.opacity(0.62))
             Spacer()
             Text(value)
                 .fontWeight(.black)
@@ -1113,7 +1324,7 @@ private struct WheelNumberPickerRow: View {
                     .monospacedDigit()
                 Text(suffix)
                     .font(.headline.weight(.black))
-                    .foregroundStyle(WorkoutTheme.mutedInk)
+                    .foregroundStyle(Color.black.opacity(0.62))
             }
 
             Picker(title, selection: selection) {
@@ -1146,40 +1357,86 @@ private struct WheelNumberPickerRow: View {
 
 private struct PlanOptionCard: View {
     let plan: TrainingPlan
+    let daysPerWeek: Int
+
+    private var isRecommended: Bool {
+        plan.id == "standard"
+    }
+
+    private var durationLabel: String {
+        plan.durationWeeks % 4 == 0 ? "\(plan.durationMonths)ヶ月" : "\(plan.durationWeeks)週"
+    }
+
+    private var paceLabel: String {
+        switch plan.id {
+        case "gentle":
+            return "続けやすい"
+        case "hard":
+            return "強め"
+        default:
+            return "標準"
+        }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(plan.title)
-                    .font(.title2.weight(.black))
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(plan.title)
+                        .font(.title2.weight(.black))
+                        .foregroundStyle(WorkoutInk.primary)
+                    Text(durationLabel)
+                        .font(.subheadline.monospacedDigit().weight(.black))
+                        .foregroundStyle(Color.black.opacity(0.62))
+                }
+
                 Spacer()
-                Text("\(plan.durationWeeks)週")
-                    .font(.headline.monospacedDigit().weight(.black))
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    if isRecommended {
+                        Text("おすすめ")
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(.black.opacity(0.86), in: Capsule())
+                    }
+
+                    Text(paceLabel)
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(WorkoutInk.primary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(.black.opacity(0.07), in: Capsule())
+                }
             }
 
-            Text(plan.stance)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.white.opacity(0.7))
-
-            HStack {
-                PlanMetric(value: "\(plan.startReps)", label: "初日")
-                PlanMetric(value: "\(plan.endReps)", label: "最終")
-                PlanMetric(value: "+\(plan.weeklyIncrease)", label: "毎週")
+            HStack(alignment: .lastTextBaseline, spacing: 8) {
+                Text("初日 \(plan.startReps)回")
+                Image(systemName: "arrow.right")
+                    .font(.headline.weight(.black))
+                Text("最終 \(plan.endReps)回")
             }
+            .font(.system(size: 27, weight: .black, design: .rounded))
+            .foregroundStyle(WorkoutInk.primary)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.68)
 
-            HStack {
-                PlanMetric(value: "\(plan.predictedAdherence)%", label: "継続予測")
-                PlanMetric(value: "\(plan.loadScore)", label: "負荷")
-                PlanMetric(value: "\(plan.dailySessions)", label: "回/日")
+            HStack(spacing: 10) {
+                PlanMetric(value: "\(plan.dailySessions)回", label: "1日")
+                PlanMetric(value: "\(daysPerWeek)回", label: "週")
+                PlanMetric(value: "+\(plan.weeklyIncrease)回", label: "毎週")
             }
-
-            Text(plan.rationale)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.white.opacity(0.64))
         }
-        .padding(20)
-        .foregroundStyle(.white)
-        .background(.black, in: RoundedRectangle(cornerRadius: 8))
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .liquidGlass(cornerRadius: 22)
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(isRecommended ? WorkoutInk.primary.opacity(0.42) : Color.black.opacity(0.14), lineWidth: isRecommended ? 1.5 : 1)
+        }
+        .contentShape(Rectangle())
     }
 }
 
@@ -1188,15 +1445,21 @@ private struct PlanMetric: View {
     let label: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.title.weight(.black))
-                .monospacedDigit()
+        VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.caption.weight(.black))
-                .foregroundStyle(.white.opacity(0.58))
+                .foregroundStyle(Color.black.opacity(0.62))
+            Text(value)
+                .font(.headline.monospacedDigit().weight(.black))
+                .foregroundStyle(WorkoutInk.primary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.black.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
