@@ -19,6 +19,10 @@ final class AppStore: ObservableObject {
         didSet { saveSettings() }
     }
 
+    @Published var userAge: Int = 25 {
+        didSet { saveSettings() }
+    }
+
     @Published var heightCm: Double = 170 {
         didSet { saveSettings() }
     }
@@ -32,6 +36,22 @@ final class AppStore: ObservableObject {
     }
 
     @Published var goalDurationMonths: Int = 3 {
+        didSet { saveSettings() }
+    }
+
+    @Published var foodPreference: FoodPreference = .balanced {
+        didSet { saveSettings() }
+    }
+
+    @Published var fitnessLevel: FitnessLevel = .normal {
+        didSet { saveSettings() }
+    }
+
+    @Published var trainingDaysPerWeek: Int = 3 {
+        didSet { saveSettings() }
+    }
+
+    @Published var kneeBackConcern: KneeBackConcern = .none {
         didSet { saveSettings() }
     }
 
@@ -62,7 +82,10 @@ final class AppStore: ObservableObject {
     }
 
     @Published var triggerPreference: TriggerPreference = .time {
-        didSet { saveSettings() }
+        didSet {
+            saveSettings()
+            refreshAutomaticBlockScheduleIfLoaded()
+        }
     }
 
     @Published var workoutTimeBand: WorkoutTimeBand = .evening {
@@ -81,7 +104,10 @@ final class AppStore: ObservableObject {
     }
 
     @Published var appBlockingEnabled = false {
-        didSet { saveSettings() }
+        didSet {
+            saveSettings()
+            refreshAutomaticBlockScheduleIfLoaded()
+        }
     }
 
     @Published var selectedExercise: ExerciseKind = .squat {
@@ -98,11 +124,17 @@ final class AppStore: ObservableObject {
         second: 0,
         of: .now
     ) ?? .now {
-        didSet { saveSettings() }
+        didSet {
+            saveSettings()
+            refreshAutomaticBlockScheduleIfLoaded()
+        }
     }
 
     @Published var isAlarmEnabled = false {
-        didSet { saveSettings() }
+        didSet {
+            saveSettings()
+            refreshAutomaticBlockScheduleIfLoaded()
+        }
     }
 
     @Published var inAppLockEnabled = true {
@@ -126,6 +158,7 @@ final class AppStore: ObservableObject {
 
     private let notificationScheduler = NotificationScheduler()
     private var isLoadingPersistedState = false
+    private static let appGroupIdentifier = "group.com.kosakanao.WorkoutLock"
     private let settingsKey = "workout-lock.settings"
     private let recordsKey = "workout-lock.records"
     static let completedDayKey = "workout-lock.completed-day"
@@ -152,6 +185,8 @@ final class AppStore: ObservableObject {
         normalizeTriggerPreference()
         syncTargetRepsWithPlan()
         resumePendingShieldingIfNeeded()
+        refreshAutomaticBlockSchedule()
+        Self.mirrorCompletedDayToAppGroup(UserDefaults.standard.string(forKey: Self.completedDayKey))
         AppDurableBackup.backupSettingsData(UserDefaults.standard.data(forKey: settingsKey))
         AppDurableBackup.backupRecords(records)
         AppDurableBackup.backupCompletedDay(UserDefaults.standard.string(forKey: Self.completedDayKey))
@@ -225,6 +260,24 @@ final class AppStore: ObservableObject {
 
     var goalSummary: String {
         "\(currentWeightKg.formatted(.number.precision(.fractionLength(1))))kg -> \(goalWeightKg.formatted(.number.precision(.fractionLength(1))))kg / \(goalDurationMonths)ヶ月"
+    }
+
+    var currentPlanResult: PlanResult? {
+        let durationDays = max(1, goalDurationMonths * 30)
+        return PlanEngine.make(
+            PlanInput(
+                gender: userGender,
+                age: userAge,
+                heightCm: heightCm,
+                currentWeightKg: currentWeightKg,
+                goalWeightKg: goalWeightKg,
+                days: durationDays,
+                foodPreference: foodPreference,
+                fitnessLevel: fitnessLevel,
+                trainingDaysPerWeek: trainingDaysPerWeek,
+                kneeBack: kneeBackConcern
+            )
+        )
     }
 
     var latestWeightCheckIn: WeightCheckIn? {
@@ -425,6 +478,7 @@ final class AppStore: ObservableObject {
             await notificationScheduler.cancelDailyWorkout()
             isAlarmEnabled = false
             UserDefaults.standard.removeObject(forKey: Self.pendingShieldStartKey)
+            refreshAutomaticBlockSchedule()
             notificationMessage = homeTriggerLabel.map { "\($0)に通知します" } ?? "帰宅後に通知します"
             Haptics.success()
             return
@@ -442,6 +496,7 @@ final class AppStore: ObservableObject {
             notificationMessage = triggerPreference == .both
                 ? "毎日 \(nextAlarmLabel) と \(homeTriggerLabel ?? "帰宅後") に通知します"
                 : "毎日 \(nextAlarmLabel) に通知します"
+            refreshAutomaticBlockSchedule()
             Haptics.success()
         } catch {
             isAlarmEnabled = false
@@ -453,6 +508,7 @@ final class AppStore: ObservableObject {
     func cancelDailyAlarm() async {
         await notificationScheduler.cancelDailyWorkout()
         isAlarmEnabled = false
+        refreshAutomaticBlockSchedule()
         UserDefaults.standard.removeObject(forKey: Self.pendingShieldStartKey)
         notificationMessage = "通知を解除しました"
         Haptics.lightTap()
@@ -535,6 +591,7 @@ final class AppStore: ObservableObject {
         records.insert(record, at: 0)
         if countsTowardDailyCompletion {
             UserDefaults.standard.set(Self.dayKey(for: record.completedAt), forKey: Self.completedDayKey)
+            Self.mirrorCompletedDayToAppGroup(Self.dayKey(for: record.completedAt))
             AppDurableBackup.backupCompletedDay(Self.dayKey(for: record.completedAt))
             UserDefaults.standard.removeObject(forKey: Self.pendingShieldStartKey)
         }
@@ -559,10 +616,15 @@ final class AppStore: ObservableObject {
         didSignInWithApple = settings.didSignInWithApple
         dataConsentAccepted = settings.dataConsentAccepted
         userGender = UserGender(rawValue: settings.userGenderRawValue) ?? .noAnswer
+        userAge = settings.userAge ?? 25
         heightCm = settings.heightCm
         currentWeightKg = settings.currentWeightKg
         goalWeightKg = settings.goalWeightKg
         goalDurationMonths = settings.goalDurationMonths ?? 3
+        foodPreference = FoodPreference(rawValue: settings.foodPreferenceRawValue ?? "") ?? .balanced
+        fitnessLevel = FitnessLevel(rawValue: settings.fitnessLevelRawValue ?? "") ?? .normal
+        trainingDaysPerWeek = settings.trainingDaysPerWeek ?? 3
+        kneeBackConcern = KneeBackConcern(rawValue: settings.kneeBackConcernRawValue ?? "") ?? .none
         selectedPlan = settings.selectedPlan
         planStartedAt = settings.planStartedAt
         weightCheckIns = (settings.weightCheckIns ?? []).sorted { $0.loggedAt > $1.loggedAt }
@@ -618,10 +680,15 @@ final class AppStore: ObservableObject {
             didSignInWithApple: didSignInWithApple,
             dataConsentAccepted: dataConsentAccepted,
             userGenderRawValue: userGender.rawValue,
+            userAge: userAge,
             heightCm: heightCm,
             currentWeightKg: currentWeightKg,
             goalWeightKg: goalWeightKg,
             goalDurationMonths: goalDurationMonths,
+            foodPreferenceRawValue: foodPreference.rawValue,
+            fitnessLevelRawValue: fitnessLevel.rawValue,
+            trainingDaysPerWeek: trainingDaysPerWeek,
+            kneeBackConcernRawValue: kneeBackConcern.rawValue,
             selectedPlan: selectedPlan,
             planStartedAt: planStartedAt,
             weightCheckIns: weightCheckIns,
@@ -648,6 +715,29 @@ final class AppStore: ObservableObject {
             UserDefaults.standard.set(data, forKey: settingsKey)
             AppDurableBackup.backupSettingsData(data)
         }
+    }
+
+    func refreshAutomaticBlockSchedule() {
+        guard appBlockingEnabled,
+              triggerPreference == .time || triggerPreference == .both,
+              isAlarmEnabled
+        else {
+            AutomaticBlockScheduler.cancel()
+            return
+        }
+
+        let components = Calendar.current.dateComponents([.hour, .minute], from: alarmTime)
+        guard let hour = components.hour, let minute = components.minute else {
+            AutomaticBlockScheduler.cancel()
+            return
+        }
+
+        AutomaticBlockScheduler.schedule(startHour: hour, startMinute: minute)
+    }
+
+    private func refreshAutomaticBlockScheduleIfLoaded() {
+        guard !isLoadingPersistedState else { return }
+        refreshAutomaticBlockSchedule()
     }
 
     private func loadRecords() {
@@ -698,6 +788,15 @@ final class AppStore: ObservableObject {
     static func dayKey(for date: Date) -> String {
         let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
         return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
+    }
+
+    static func mirrorCompletedDayToAppGroup(_ dayKey: String?) {
+        guard let defaults = UserDefaults(suiteName: appGroupIdentifier) else { return }
+        if let dayKey {
+            defaults.set(dayKey, forKey: completedDayKey)
+        } else {
+            defaults.removeObject(forKey: completedDayKey)
+        }
     }
 
     private func makePlanOptions() -> [TrainingPlan] {
@@ -817,10 +916,15 @@ private struct StoredSettings: Codable {
     let didSignInWithApple: Bool
     let dataConsentAccepted: Bool?
     let userGenderRawValue: String
+    let userAge: Int?
     let heightCm: Double
     let currentWeightKg: Double
     let goalWeightKg: Double
     let goalDurationMonths: Int?
+    let foodPreferenceRawValue: String?
+    let fitnessLevelRawValue: String?
+    let trainingDaysPerWeek: Int?
+    let kneeBackConcernRawValue: String?
     let selectedPlan: TrainingPlan?
     let planStartedAt: Date?
     let weightCheckIns: [WeightCheckIn]?

@@ -21,6 +21,9 @@ final class ScreenShieldingService: ObservableObject {
 
     private let managedSettingsStore = ManagedSettingsStore(named: ManagedSettingsStore.Name("WorkoutLock"))
     private static let selectionKey = "workout-lock.family-activity-selection"
+    private static var sharedDefaults: UserDefaults {
+        UserDefaults(suiteName: "group.com.kosakanao.WorkoutLock") ?? .standard
+    }
     #endif
 
     var capabilityText: String {
@@ -155,8 +158,10 @@ final class ScreenShieldingService: ObservableObject {
     }
 
     private static func loadSelection() -> FamilyActivitySelection {
+        let defaults = sharedDefaults
+        let data = defaults.data(forKey: selectionKey) ?? UserDefaults.standard.data(forKey: selectionKey)
         guard
-            let data = UserDefaults.standard.data(forKey: selectionKey),
+            let data,
             let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
         else {
             return FamilyActivitySelection(includeEntireCategory: true)
@@ -164,7 +169,9 @@ final class ScreenShieldingService: ObservableObject {
 
         let normalized = normalizedSelection(decoded)
         if normalized != decoded, let data = try? JSONEncoder().encode(normalized) {
-            UserDefaults.standard.set(data, forKey: selectionKey)
+            defaults.set(data, forKey: selectionKey)
+        } else if defaults.data(forKey: selectionKey) == nil {
+            defaults.set(data, forKey: selectionKey)
         }
         return normalized
     }
@@ -192,7 +199,7 @@ final class ScreenShieldingService: ObservableObject {
             return
         }
 
-        UserDefaults.standard.set(data, forKey: Self.selectionKey)
+        Self.sharedDefaults.set(data, forKey: Self.selectionKey)
     }
 
     private func updateSelectionStatus(prefix: String? = nil) {

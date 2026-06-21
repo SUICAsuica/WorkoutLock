@@ -31,6 +31,7 @@ struct HomeView: View {
                     heroCard
                     startButton
                     statsRow
+                    dietCard
                     recordsCard
                 }
                 .padding(.horizontal, 22)
@@ -158,6 +159,41 @@ struct HomeView: View {
     private func showWeightCheckInIfDue() {
         guard activeSheet == nil, !isShowingWorkout, store.isWeeklyWeightCheckInDue else { return }
         activeSheet = .weightCheckIn
+    }
+
+    @ViewBuilder
+    private var dietCard: some View {
+        if let result = store.currentPlanResult {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text("今日の食事")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(WorkoutInk.primary)
+                    Spacer()
+                    Text(result.dietLevel.title)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(WorkoutInk.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .liquidGlass(cornerRadius: 14)
+                }
+
+                ForEach(Array(result.dietLevel.foodRules.prefix(3)), id: \.self) { rule in
+                    HStack(spacing: 10) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(WorkoutTheme.deepOrange)
+                        Text(rule)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(WorkoutInk.primary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity)
+            .liquidGlass(cornerRadius: 24)
+        }
     }
 
     private var recordsCard: some View {

@@ -114,6 +114,13 @@ struct OnboardingFlowView: View {
         store.triggerPreference == .homeArrival || store.triggerPreference == .both
     }
 
+    private var userAgeBinding: Binding<Double> {
+        Binding(
+            get: { Double(store.userAge) },
+            set: { store.userAge = Int($0.rounded()) }
+        )
+    }
+
     private var storyHeader: some View {
         VStack(spacing: 18) {
             HStack(spacing: 5) {
@@ -333,6 +340,22 @@ struct OnboardingFlowView: View {
                     step: 0.5,
                     fractionDigits: 1
                 )
+
+                WheelNumberPickerRow(
+                    title: "年齢",
+                    suffix: "歳",
+                    value: userAgeBinding,
+                    range: 12...90,
+                    step: 1,
+                    fractionDigits: 0
+                )
+
+                Picker("運動経験", selection: $store.fitnessLevel) {
+                    ForEach(FitnessLevel.allCases) { level in
+                        Text(level.title).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
             .onboardingPanel()
 
@@ -381,6 +404,28 @@ struct OnboardingFlowView: View {
                     }
                 }
                 .font(.headline.weight(.black))
+
+                Picker("食事", selection: $store.foodPreference) {
+                    ForEach(FoodPreference.allCases) { preference in
+                        Text(preference.title).tag(preference)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Picker("週の回数", selection: $store.trainingDaysPerWeek) {
+                    ForEach(2...5, id: \.self) { days in
+                        Text("\(days)日").tag(days)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                if let result = store.currentPlanResult {
+                    Text("目安: 週\(store.trainingDaysPerWeek)回・1回\(result.repsPerTrainingDay)回 / 食事 \(result.dietLevel.title)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(WorkoutTheme.mutedInk)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
             }
             .onboardingPanel()
 

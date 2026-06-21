@@ -16,6 +16,8 @@ final class LocationTriggerService: NSObject, ObservableObject {
     private var pendingDelayMinutes = 10
     private var monitoredLocations: [String: HomeLocation] = [:]
     private var isCapturingLocation = false
+    private var insideRegionIdentifiers: Set<String> = []
+    private var dwellTasks: [String: Task<Void, Never>] = [:]
 
     override init() {
         super.init()
@@ -206,13 +208,79 @@ final class LocationTriggerService: NSObject, ObservableObject {
 
     private func handleInsideRegion(identifier: String) {
         guard let location = monitoredLocations[identifier] else { return }
-        statusText = "\(location.triggerSummary)の通知を予約しました"
+        insideRegionIdentifiers.insert(identifier)
+        statusText = "\(location.triggerSummary)に滞在中。\(effectiveDelayMinutes(for: location))分で開始します"
+        // 背面/終了向け: 到着+遅延で通知（タップで開始）
         scheduleArrivalNotification(for: location)
+        // 前面向け: アプリ内の滞在タイマーで自動開始（通知許可に依存しない）
+        startDwellTimer(for: location)
     }
 
     private func handleOutsideRegion(identifier: String) {
         guard let location = monitoredLocations[identifier] else { return }
+        insideRegionIdentifiers.remove(identifier)
+        dwellTasks[identifier]?.cancel()
+        dwellTasks[identifier] = nil
         cancelArrivalNotification(for: location)
+    }
+
+    /// 監視中リージョンの内外を再評価する。起動・前面復帰時に呼ぶと
+    /// 「すでに到着済み」でも滞在判定・タイマー再開ができる。
+    func refreshTriggerStates() {
+        for region in manager.monitoredRegions where region.identifier.hasPrefix("workout-lock-location-") {
+            manager.requestState(for: region)
+        }
+    }
+
+    /// 前面滞在タイマー。残り時間後にまだ滞在中なら自動でワークアウト開始要求を出す。
+    private func startDwellTimer(for location: HomeLocation) {
+        guard UserDefaults.standard.string(forKey: AppStore.completedDayKey) != AppStore.dayKey(for: .now) else { return }
+
+        let identifier = regionIdentifier(for: location)
+        dwellTasks[identifier]?.cancel()
+
+        let fireDate = pendingArrivalStartDate(for: location)
+            ?? Date().addingTimeInterval(TimeInterval(effectiveDelayMinutes(for: location) * 60))
+        let remaining = max(0, fireDate.timeIntervalSinceNow)
+
+        dwellTasks[identifier] = Task { [weak self] in
+            if remaining > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+            }
+            if Task.isCancelled { return }
+            await self?.fireDwell(identifier: identifier, location: location)
+        }
+    }
+
+    private func fireDwell(identifier: String, location: HomeLocation) {
+        dwellTasks[identifier] = nil
+        guard insideRegionIdentifiers.contains(identifier) else { return }
+        guard UserDefaults.standard.string(forKey: AppStore.completedDayKey) != AppStore.dayKey(for: .now) else { return }
+        WorkoutLaunchRequest.markPending()
+        NotificationCenter.default.post(name: .workoutStartRequested, object: nil)
+        statusText = "\(location.triggerSummary)で自動開始しました"
+    }
+
+    /// 動作確認用。現地に行かなくても、前面の滞在タイマー→自動開始の経路を短時間で試す。
+    func runForegroundTriggerTest(afterSeconds seconds: Int = 30) {
+        let identifier = "workout-lock-location-test"
+        insideRegionIdentifiers.insert(identifier)
+        dwellTasks[identifier]?.cancel()
+        statusText = "テスト: \(seconds)秒後に自動開始します（今日タブで確認）"
+
+        dwellTasks[identifier] = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(max(1, seconds)) * 1_000_000_000)
+            if Task.isCancelled { return }
+            await self?.fireTestDwell(identifier: identifier)
+        }
+    }
+
+    private func fireTestDwell(identifier: String) {
+        dwellTasks[identifier] = nil
+        insideRegionIdentifiers.remove(identifier)
+        WorkoutLaunchRequest.markPending()
+        NotificationCenter.default.post(name: .workoutStartRequested, object: nil)
+        statusText = "テスト: 自動開始しました"
     }
 }
 

@@ -140,6 +140,18 @@ struct ScheduleView: View {
                         .buttonStyle(.borderedProminent)
                         .tint(.black)
 
+                        Button {
+                            Haptics.selection()
+                            locationTrigger.runForegroundTriggerTest(afterSeconds: 30)
+                        } label: {
+                            Label("動作テスト（30秒後に自動開始）", systemImage: "bolt.fill")
+                                .font(.subheadline.weight(.black))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.black)
+
                         if store.triggerLocations.isEmpty {
                             Text(locationTrigger.statusText)
                                 .font(.caption.weight(.bold))

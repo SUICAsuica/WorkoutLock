@@ -7,6 +7,7 @@ struct WorkoutLockApp: App {
     @UIApplicationDelegateAdaptor(WorkoutLockAppDelegate.self) private var appDelegate
     @StateObject private var store = AppStore()
     @StateObject private var locationTrigger = LocationTriggerService()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -19,6 +20,7 @@ struct WorkoutLockApp: App {
                     if ProcessInfo.processInfo.arguments.contains("--test-arrival-notification") {
                         Task { @MainActor in
                             UserDefaults.standard.removeObject(forKey: AppStore.completedDayKey)
+                            AppStore.mirrorCompletedDayToAppGroup(nil)
                             if let triggerDate = try? await NotificationScheduler.scheduleTestStartNotification(
                                 exercise: store.selectedExercise,
                                 targetReps: store.targetReps,
@@ -37,6 +39,12 @@ struct WorkoutLockApp: App {
                 }
                 .onChange(of: store.triggerLocations) { _, locations in
                     locationTrigger.startMonitoring(locations: locations)
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    guard phase == .active else { return }
+                    // 前面復帰のたびに監視を貼り直し、すでに到着済みの場所を再評価する。
+                    locationTrigger.startMonitoring(locations: store.triggerLocations)
+                    locationTrigger.refreshTriggerStates()
                 }
         }
     }

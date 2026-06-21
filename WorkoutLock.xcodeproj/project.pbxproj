@@ -31,6 +31,7 @@
 		A10000000000000000000067 /* WorkoutLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000047 /* WorkoutLiveActivityService.swift */; };
 		A10000000000000000000068 /* WorkoutLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000048 /* WorkoutLiveActivityAttributes.swift */; };
 		A10000000000000000000069 /* WorkoutMusicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000049 /* WorkoutMusicPlayer.swift */; };
+		A100000000000000000000A1 /* AutomaticBlockScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000000A0 /* AutomaticBlockScheduler.swift */; };
 		A1000000000000000000006A /* suno_slot_01.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000004A /* suno_slot_01.wav */; };
 		A1000000000000000000006B /* suno_slot_02.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000004B /* suno_slot_02.wav */; };
 		A1000000000000000000006C /* suno_slot_03.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000004C /* suno_slot_03.wav */; };
@@ -42,6 +43,7 @@
 		A10000000000000000000072 /* music_final_sprint.wav in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000078 /* music_final_sprint.wav */; };
 		A1000000000000000000009A /* WorkoutShareCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000009B /* WorkoutShareCard.swift */; };
 		A1000000000000000000009C /* LiquidGlass.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000009D /* LiquidGlass.swift */; };
+		A1000000000000000000009F /* PlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000009E /* PlanEngine.swift */; };
 		A20000000000000000000051 /* ShieldConfigurationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000031 /* ShieldConfigurationExtension.swift */; };
 		A20000000000000000000052 /* WorkoutLockShieldConfiguration.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000A /* WorkoutLockShieldConfiguration.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A30000000000000000000051 /* ShieldActionExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000031 /* ShieldActionExtension.swift */; };
@@ -49,6 +51,8 @@
 		A40000000000000000000051 /* WorkoutLockLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000031 /* WorkoutLockLiveActivity.swift */; };
 		A40000000000000000000052 /* WorkoutLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000048 /* WorkoutLiveActivityAttributes.swift */; };
 		A40000000000000000000053 /* WorkoutLockLiveActivity.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A4000000000000000000000A /* WorkoutLockLiveActivity.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A50000000000000000000051 /* WorkoutLockActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50000000000000000000031 /* WorkoutLockActivityMonitor.swift */; };
+		A50000000000000000000052 /* WorkoutLockActivityMonitor.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A5000000000000000000000A /* WorkoutLockActivityMonitor.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,6 +77,13 @@
 			remoteGlobalIDString = A40000000000000000000002;
 			remoteInfo = WorkoutLockLiveActivity;
 		};
+		A50000000000000000000016 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000002;
+			remoteInfo = WorkoutLockActivityMonitor;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -85,6 +96,7 @@
 				A20000000000000000000052 /* WorkoutLockShieldConfiguration.appex in Embed App Extensions */,
 				A30000000000000000000052 /* WorkoutLockShieldAction.appex in Embed App Extensions */,
 				A40000000000000000000053 /* WorkoutLockLiveActivity.appex in Embed App Extensions */,
+				A50000000000000000000052 /* WorkoutLockActivityMonitor.appex in Embed App Extensions */,
 			);
 			name = "Embed App Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,6 +130,7 @@
 		A10000000000000000000047 /* WorkoutLiveActivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivityService.swift; sourceTree = "<group>"; };
 		A10000000000000000000048 /* WorkoutLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivityAttributes.swift; sourceTree = "<group>"; };
 		A10000000000000000000049 /* WorkoutMusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicPlayer.swift; sourceTree = "<group>"; };
+		A100000000000000000000A0 /* AutomaticBlockScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticBlockScheduler.swift; sourceTree = "<group>"; };
 		A1000000000000000000004A /* suno_slot_01.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = suno_slot_01.wav; sourceTree = "<group>"; };
 		A1000000000000000000004B /* suno_slot_02.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = suno_slot_02.wav; sourceTree = "<group>"; };
 		A1000000000000000000004C /* suno_slot_03.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = suno_slot_03.wav; sourceTree = "<group>"; };
@@ -129,6 +142,7 @@
 		A10000000000000000000078 /* music_final_sprint.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = music_final_sprint.wav; sourceTree = "<group>"; };
 		A1000000000000000000009B /* WorkoutShareCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutShareCard.swift; sourceTree = "<group>"; };
 		A1000000000000000000009D /* LiquidGlass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlass.swift; sourceTree = "<group>"; };
+		A1000000000000000000009E /* PlanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanEngine.swift; sourceTree = "<group>"; };
 		A2000000000000000000000A /* WorkoutLockShieldConfiguration.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WorkoutLockShieldConfiguration.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000031 /* ShieldConfigurationExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldConfigurationExtension.swift; sourceTree = "<group>"; };
 		A20000000000000000000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -140,6 +154,10 @@
 		A4000000000000000000000A /* WorkoutLockLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WorkoutLockLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A40000000000000000000031 /* WorkoutLockLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLockLiveActivity.swift; sourceTree = "<group>"; };
 		A40000000000000000000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A5000000000000000000000A /* WorkoutLockActivityMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = WorkoutLockActivityMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A50000000000000000000031 /* WorkoutLockActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLockActivityMonitor.swift; sourceTree = "<group>"; };
+		A50000000000000000000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A50000000000000000000033 /* WorkoutLockActivityMonitor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WorkoutLockActivityMonitor.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -171,6 +189,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A50000000000000000000012 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -182,6 +207,7 @@
 				A20000000000000000000005 /* WorkoutLockShieldConfiguration */,
 				A30000000000000000000005 /* WorkoutLockShieldAction */,
 				A40000000000000000000005 /* WorkoutLockLiveActivity */,
+				A50000000000000000000005 /* WorkoutLockActivityMonitor */,
 				A10000000000000000000041 /* WorkoutLock/WorkoutLock.entitlements */,
 				A10000000000000000000004 /* Products */,
 			);
@@ -194,6 +220,7 @@
 				A2000000000000000000000A /* WorkoutLockShieldConfiguration.appex */,
 				A3000000000000000000000A /* WorkoutLockShieldAction.appex */,
 				A4000000000000000000000A /* WorkoutLockLiveActivity.appex */,
+				A5000000000000000000000A /* WorkoutLockActivityMonitor.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -205,6 +232,7 @@
 				A10000000000000000000032 /* Models.swift */,
 				A10000000000000000000043 /* DatasetModels.swift */,
 				A10000000000000000000046 /* WorkoutPlanEstimator.swift */,
+				A1000000000000000000009E /* PlanEngine.swift */,
 				A10000000000000000000033 /* AppStore.swift */,
 				A1000000000000000000000B /* Shared */,
 				A10000000000000000000006 /* Views */,
@@ -248,6 +276,7 @@
 				A10000000000000000000040 /* LocationTriggerService.swift */,
 				A10000000000000000000047 /* WorkoutLiveActivityService.swift */,
 				A10000000000000000000049 /* WorkoutMusicPlayer.swift */,
+				A100000000000000000000A0 /* AutomaticBlockScheduler.swift */,
 				A10000000000000000000042 /* Haptics.swift */,
 				A10000000000000000000044 /* DatasetStore.swift */,
 			);
@@ -316,6 +345,16 @@
 			path = WorkoutLockLiveActivity;
 			sourceTree = "<group>";
 		};
+		A50000000000000000000005 /* WorkoutLockActivityMonitor */ = {
+			isa = PBXGroup;
+			children = (
+				A50000000000000000000031 /* WorkoutLockActivityMonitor.swift */,
+				A50000000000000000000032 /* Info.plist */,
+				A50000000000000000000033 /* WorkoutLockActivityMonitor.entitlements */,
+			);
+			path = WorkoutLockActivityMonitor;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -334,6 +373,7 @@
 				A20000000000000000000017 /* PBXTargetDependency */,
 				A30000000000000000000017 /* PBXTargetDependency */,
 				A40000000000000000000017 /* PBXTargetDependency */,
+				A50000000000000000000017 /* PBXTargetDependency */,
 			);
 			name = WorkoutLock;
 			productName = WorkoutLock;
@@ -388,6 +428,23 @@
 			productReference = A4000000000000000000000A /* WorkoutLockLiveActivity.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		A50000000000000000000002 /* WorkoutLockActivityMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A50000000000000000000021 /* Build configuration list for PBXNativeTarget "WorkoutLockActivityMonitor" */;
+			buildPhases = (
+				A50000000000000000000010 /* Sources */,
+				A50000000000000000000012 /* Frameworks */,
+				A50000000000000000000011 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WorkoutLockActivityMonitor;
+			productName = WorkoutLockActivityMonitor;
+			productReference = A5000000000000000000000A /* WorkoutLockActivityMonitor.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -415,6 +472,9 @@
 					A40000000000000000000002 = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
+					A50000000000000000000002 = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
 				};
 			};
 			buildConfigurationList = A10000000000000000000020 /* Build configuration list for PBXProject "WorkoutLock" */;
@@ -435,6 +495,7 @@
 				A20000000000000000000002 /* WorkoutLockShieldConfiguration */,
 				A30000000000000000000002 /* WorkoutLockShieldAction */,
 				A40000000000000000000002 /* WorkoutLockLiveActivity */,
+				A50000000000000000000002 /* WorkoutLockActivityMonitor */,
 			);
 		};
 /* End PBXProject section */
@@ -457,6 +518,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A50000000000000000000011 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -468,12 +536,14 @@
 				A10000000000000000000052 /* Models.swift in Sources */,
 				A10000000000000000000063 /* DatasetModels.swift in Sources */,
 				A10000000000000000000066 /* WorkoutPlanEstimator.swift in Sources */,
+				A1000000000000000000009F /* PlanEngine.swift in Sources */,
 				A10000000000000000000053 /* AppStore.swift in Sources */,
 				A10000000000000000000054 /* NotificationScheduler.swift in Sources */,
 				A10000000000000000000055 /* ScreenShieldingService.swift in Sources */,
 				A10000000000000000000060 /* LocationTriggerService.swift in Sources */,
 				A10000000000000000000067 /* WorkoutLiveActivityService.swift in Sources */,
 				A10000000000000000000069 /* WorkoutMusicPlayer.swift in Sources */,
+				A100000000000000000000A1 /* AutomaticBlockScheduler.swift in Sources */,
 				A10000000000000000000062 /* Haptics.swift in Sources */,
 				A10000000000000000000064 /* DatasetStore.swift in Sources */,
 				A10000000000000000000068 /* WorkoutLiveActivityAttributes.swift in Sources */,
@@ -517,6 +587,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A50000000000000000000010 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A50000000000000000000051 /* WorkoutLockActivityMonitor.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -534,6 +612,11 @@
 			isa = PBXTargetDependency;
 			target = A40000000000000000000002 /* WorkoutLockLiveActivity */;
 			targetProxy = A40000000000000000000016 /* PBXContainerItemProxy */;
+		};
+		A50000000000000000000017 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000002 /* WorkoutLockActivityMonitor */;
+			targetProxy = A50000000000000000000016 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -881,6 +964,60 @@
 			};
 			name = Release;
 		};
+		A50000000000000000000024 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = WorkoutLockActivityMonitor/WorkoutLockActivityMonitor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 58299Z2YPT;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WorkoutLockActivityMonitor/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kosakanao.WorkoutLock.ActivityMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A50000000000000000000025 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = WorkoutLockActivityMonitor/WorkoutLockActivityMonitor.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 58299Z2YPT;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WorkoutLockActivityMonitor/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kosakanao.WorkoutLock.ActivityMonitor;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -925,6 +1062,15 @@
 			buildConfigurations = (
 				A40000000000000000000024 /* Debug */,
 				A40000000000000000000025 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A50000000000000000000021 /* Build configuration list for PBXNativeTarget "WorkoutLockActivityMonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A50000000000000000000024 /* Debug */,
+				A50000000000000000000025 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

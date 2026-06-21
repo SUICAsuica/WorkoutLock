@@ -165,7 +165,7 @@ enum WorkoutPlanEstimator {
         dailySessions: Int,
         profile: ProfileEstimate,
         calibration: TutorialCalibration?,
-        mode: PlanMode
+        mode: EstimatorPlanMode
     ) -> TrainingPlan {
         let weeklyRamp = Double(max(1, endReps - startReps)) / Double(max(1, durationWeeks))
         let fatiguePenalty = min(30, Int(weeklyRamp * 4.5 + Double(startReps) * 0.9))
@@ -206,7 +206,7 @@ private struct ProfileEstimate {
     let goalEndReps: Int
 }
 
-private enum PlanMode {
+private enum EstimatorPlanMode {
     case gentle
     case standard
     case hard
