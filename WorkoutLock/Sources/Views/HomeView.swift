@@ -722,11 +722,14 @@ struct ProgressBoardView: View {
             musicPlayer.stop()
             return
         }
-        let track = WorkoutMusicTrack.randomPool.randomElement() ?? store.selectedMusicTrack
+        let availableTracks = WorkoutMusicTrack.availableRandomPool()
+        let bundledTracks = WorkoutMusicTrack.allCases.filter { $0.bundledURL() != nil }
+        let track = availableTracks.randomElement() ?? store.selectedMusicTrack
         musicPlayer.start(
             track: track,
             volume: store.workoutMusicVolume,
-            isEnabled: store.workoutMusicEnabled
+            isEnabled: store.workoutMusicEnabled,
+            fallbackTracks: (availableTracks + bundledTracks).filter { $0 != track }
         )
     }
 }

@@ -21,6 +21,7 @@ struct WorkoutSessionView: View {
     @State private var lowestKneeAngle: Double?
     @State private var standingKneeAngle: Double?
     @State private var activeMusicTrack: WorkoutMusicTrack = .sunoSlot01
+    @State private var hasStartedMusic = false
     @State private var shareURL: URL?
 
     let exercise: ExerciseKind
@@ -94,12 +95,8 @@ struct WorkoutSessionView: View {
             Haptics.mediumTap()
             shielding.applyShielding(isEnabled: store.appBlockingEnabled)
             camera.applyCalibration(isTutorial ? nil : store.tutorialCalibration)
-            activeMusicTrack = randomWorkoutTrack()
-            musicPlayer.start(
-                track: activeMusicTrack,
-                volume: store.workoutMusicVolume,
-                isEnabled: store.workoutMusicEnabled
-            )
+            activeMusicTrack = WorkoutMusicTrack.randomWorkoutTrack(fallback: store.selectedMusicTrack)
+            hasStartedMusic = false
             camera.start()
         }
         .onDisappear {
@@ -109,19 +106,17 @@ struct WorkoutSessionView: View {
         .onChange(of: store.workoutMusicVolume) { _, volume in
             musicPlayer.updateVolume(volume)
         }
-        .onChange(of: store.selectedMusicTrack) { _, track in
-            musicPlayer.start(
-                track: track,
-                volume: store.workoutMusicVolume,
-                isEnabled: store.workoutMusicEnabled
-            )
-        }
         .onChange(of: store.workoutMusicEnabled) { _, isEnabled in
-            musicPlayer.start(
-                track: activeMusicTrack,
-                volume: store.workoutMusicVolume,
-                isEnabled: isEnabled
-            )
+            if isEnabled {
+                startWorkoutMusic(forceRestart: true)
+            } else {
+                musicPlayer.start(track: activeMusicTrack, volume: store.workoutMusicVolume, isEnabled: false)
+                hasStartedMusic = false
+            }
+        }
+        .onChange(of: camera.status) { _, status in
+            guard status == .running else { return }
+            startWorkoutMusic(forceRestart: false)
         }
         .onChange(of: store.tutorialCalibration) { _, calibration in
             guard !isTutorial else { return }
@@ -144,8 +139,29 @@ struct WorkoutSessionView: View {
         }
     }
 
-    private func randomWorkoutTrack() -> WorkoutMusicTrack {
-        WorkoutMusicTrack.randomPool.randomElement() ?? store.selectedMusicTrack
+    private func startWorkoutMusic(forceRestart: Bool) {
+        guard store.workoutMusicEnabled else {
+            musicPlayer.start(track: activeMusicTrack, volume: store.workoutMusicVolume, isEnabled: false)
+            hasStartedMusic = false
+            return
+        }
+        guard camera.status == .running else { return }
+        guard forceRestart || !hasStartedMusic else { return }
+
+        let bundledTracks = WorkoutMusicTrack.allCases.filter { $0.bundledURL() != nil }
+        let fallbackTracks = (WorkoutMusicTrack.availableRandomPool() + bundledTracks).filter { $0 != activeMusicTrack }
+        if let startedTrack = musicPlayer.start(
+            track: activeMusicTrack,
+            volume: store.workoutMusicVolume,
+            isEnabled: true,
+            fallbackTracks: fallbackTracks
+        ) {
+            activeMusicTrack = startedTrack
+            hasStartedMusic = true
+            WorkoutMusicTrack.saveLastWorkoutTrack(startedTrack)
+        } else {
+            hasStartedMusic = false
+        }
     }
 
     private var topBar: some View {

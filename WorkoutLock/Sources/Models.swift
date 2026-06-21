@@ -413,8 +413,50 @@ enum WorkoutMusicTrack: String, Codable, CaseIterable, Identifiable {
         "wav"
     }
 
+    func bundledURL(in bundle: Bundle = .main) -> URL? {
+        bundle.url(
+            forResource: resourceName,
+            withExtension: resourceExtension,
+            subdirectory: "Music"
+        ) ?? bundle.url(
+            forResource: resourceName,
+            withExtension: resourceExtension
+        )
+    }
+
     static var randomPool: [WorkoutMusicTrack] {
         [.sunoSlot01, .sunoSlot02, .sunoSlot03]
+    }
+
+    static var lastWorkoutTrackDefaultsKey: String {
+        "workout-lock.last-workout-track"
+    }
+
+    static func availableRandomPool(in bundle: Bundle = .main) -> [WorkoutMusicTrack] {
+        randomPool.filter { $0.bundledURL(in: bundle) != nil }
+    }
+
+    static func randomWorkoutTrack(
+        defaults: UserDefaults = .standard,
+        bundle: Bundle = .main,
+        fallback: WorkoutMusicTrack
+    ) -> WorkoutMusicTrack {
+        let availableTracks = availableRandomPool(in: bundle)
+        let pool: [WorkoutMusicTrack]
+        if availableTracks.isEmpty, fallback.bundledURL(in: bundle) != nil {
+            pool = [fallback]
+        } else if availableTracks.isEmpty {
+            pool = randomPool
+        } else {
+            pool = availableTracks
+        }
+        let lastTrack = defaults.string(forKey: lastWorkoutTrackDefaultsKey).flatMap { WorkoutMusicTrack(rawValue: $0) }
+        let candidates = pool.count > 1 ? pool.filter { $0 != lastTrack } : pool
+        return candidates.randomElement() ?? pool.randomElement() ?? fallback
+    }
+
+    static func saveLastWorkoutTrack(_ track: WorkoutMusicTrack, defaults: UserDefaults = .standard) {
+        defaults.set(track.rawValue, forKey: lastWorkoutTrackDefaultsKey)
     }
 }
 

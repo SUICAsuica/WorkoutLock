@@ -7,42 +7,47 @@ final class WorkoutMusicPlayer: ObservableObject {
 
     private var player: AVAudioPlayer?
 
-    func start(track: WorkoutMusicTrack, volume: Double, isEnabled: Bool) {
+    @discardableResult
+    func start(
+        track: WorkoutMusicTrack,
+        volume: Double,
+        isEnabled: Bool,
+        fallbackTracks: [WorkoutMusicTrack] = []
+    ) -> WorkoutMusicTrack? {
         stop()
         guard isEnabled else {
             statusText = "オフ"
-            return
+            return nil
         }
 
-        let bundledURL = Bundle.main.url(
-            forResource: track.resourceName,
-            withExtension: track.resourceExtension,
-            subdirectory: "Music"
-        ) ?? Bundle.main.url(
-            forResource: track.resourceName,
-            withExtension: track.resourceExtension
-        )
+        let candidates = uniqueTracks([track] + fallbackTracks)
 
-        guard let url = bundledURL else {
-            statusText = "音源未追加"
-            return
+        var foundBundledAudio = false
+
+        for candidate in candidates {
+            guard let url = candidate.bundledURL() else { continue }
+            foundBundledAudio = true
+
+            do {
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                try session.setActive(true)
+
+                let audioPlayer = try AVAudioPlayer(contentsOf: url)
+                audioPlayer.numberOfLoops = -1
+                audioPlayer.volume = Float(min(1, max(0, volume)))
+                audioPlayer.prepareToPlay()
+                audioPlayer.play()
+                player = audioPlayer
+                statusText = candidate.title
+                return candidate
+            } catch {
+                continue
+            }
         }
 
-        do {
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-            try session.setActive(true)
-
-            let audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer.numberOfLoops = -1
-            audioPlayer.volume = Float(min(1, max(0, volume)))
-            audioPlayer.prepareToPlay()
-            audioPlayer.play()
-            player = audioPlayer
-            statusText = track.title
-        } catch {
-            statusText = "再生失敗"
-        }
+        statusText = foundBundledAudio ? "再生失敗" : "音源未追加"
+        return nil
     }
 
     func updateVolume(_ volume: Double) {
@@ -53,5 +58,10 @@ final class WorkoutMusicPlayer: ObservableObject {
         player?.stop()
         player = nil
         statusText = "停止中"
+    }
+
+    private func uniqueTracks(_ tracks: [WorkoutMusicTrack]) -> [WorkoutMusicTrack] {
+        var seen = Set<WorkoutMusicTrack>()
+        return tracks.filter { seen.insert($0).inserted }
     }
 }
