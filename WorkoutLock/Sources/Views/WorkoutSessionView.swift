@@ -25,6 +25,8 @@ struct WorkoutSessionView: View {
     @State private var shareURL: URL?
     @State private var completedSets = 0
     @State private var setStartRepOffset = 0
+    @State private var workoutSessionLockTask: Task<Void, Never>?
+    @State private var didClearWorkoutSessionLock = false
 
     let exercise: ExerciseKind
     let targetReps: Int
@@ -100,7 +102,13 @@ struct WorkoutSessionView: View {
             lowestKneeAngle = nil
             standingKneeAngle = nil
             Haptics.mediumTap()
-            shielding.applyShielding(isEnabled: store.appBlockingEnabled)
+            didClearWorkoutSessionLock = false
+            workoutSessionLockTask?.cancel()
+            if !isTutorial {
+                workoutSessionLockTask = Task {
+                    await shielding.applyWorkoutSessionLock()
+                }
+            }
             camera.applyCalibration(isTutorial ? nil : store.tutorialCalibration)
             activeMusicTrack = WorkoutMusicTrack.randomWorkoutTrack(fallback: store.selectedMusicTrack)
             hasStartedMusic = false
@@ -112,6 +120,7 @@ struct WorkoutSessionView: View {
             }
         }
         .onDisappear {
+            clearWorkoutSessionLockIfNeeded()
             camera.stop()
             musicPlayer.stop()
             WorkoutLiveActivityService.end()
@@ -346,7 +355,7 @@ struct WorkoutSessionView: View {
         Haptics.success()
         camera.stop()
         musicPlayer.stop()
-        shielding.applyShielding(isEnabled: false)
+        clearWorkoutSessionLockIfNeeded()
         store.completeWorkout(
             actualReps: actualReps,
             duration: Date().timeIntervalSince(startedAt),
@@ -364,6 +373,14 @@ struct WorkoutSessionView: View {
             )
         }
         saveAutoDatasetIfNeeded(actualReps: actualReps)
+    }
+
+    private func clearWorkoutSessionLockIfNeeded() {
+        workoutSessionLockTask?.cancel()
+        workoutSessionLockTask = nil
+        guard !isTutorial, !didClearWorkoutSessionLock else { return }
+        didClearWorkoutSessionLock = true
+        shielding.clearWorkoutSessionLock()
     }
 
     private func appendAutoPoseSample(_ frame: PoseFrame) {

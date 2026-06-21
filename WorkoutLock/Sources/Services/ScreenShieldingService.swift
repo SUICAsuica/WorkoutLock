@@ -135,7 +135,62 @@ final class ScreenShieldingService: ObservableObject {
         #endif
     }
 
+    func applyWorkoutSessionLock() async {
+        #if canImport(FamilyControls) && canImport(ManagedSettings)
+        guard hasConfiguredSelection else {
+            statusText = "ブロック対象が未選択です。設定で選ぶと開始時にロックできます"
+            return
+        }
+
+        guard await requestAuthorizationIfNeededForSessionLock() else {
+            return
+        }
+        guard !Task.isCancelled else { return }
+
+        let normalized = Self.normalizedSelection(selection)
+        Self.apply(selection: normalized, to: managedSettingsStore)
+        statusText = "ワークアウト中のブロックを適用しました: \(selectionSummary)"
+        Haptics.success()
+        #else
+        statusText = "この環境ではアプリブロックを適用できません"
+        #endif
+    }
+
+    func clearWorkoutSessionLock() {
+        #if canImport(FamilyControls) && canImport(ManagedSettings)
+        managedSettingsStore.clearAllSettings()
+        updateSelectionStatus(prefix: "ワークアウト中のブロックを解除しました。")
+        #else
+        statusText = "この環境ではアプリブロックを解除できません"
+        #endif
+    }
+
     #if canImport(FamilyControls) && canImport(ManagedSettings)
+    private func requestAuthorizationIfNeededForSessionLock() async -> Bool {
+        if #available(iOS 16.0, *) {
+            let center = AuthorizationCenter.shared
+            guard center.authorizationStatus != .approved else {
+                return true
+            }
+
+            do {
+                try await center.requestAuthorization(for: .individual)
+            } catch {
+                statusText = "Screen Time権限を取得できませんでした: \(error.localizedDescription)"
+                return false
+            }
+
+            guard center.authorizationStatus == .approved else {
+                statusText = "Screen Time権限が未認可です。設定で許可すると開始時にロックできます"
+                return false
+            }
+            return true
+        } else {
+            statusText = "iOS 16以上が必要です。"
+            return false
+        }
+    }
+
     static func applyStoredShielding(isEnabled: Bool) {
         let managedSettingsStore = ManagedSettingsStore(named: ManagedSettingsStore.Name("WorkoutLock"))
         guard isEnabled else {
