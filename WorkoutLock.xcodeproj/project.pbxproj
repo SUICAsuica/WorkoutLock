@@ -32,6 +32,7 @@
 		A10000000000000000000068 /* WorkoutLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000048 /* WorkoutLiveActivityAttributes.swift */; };
 		A10000000000000000000069 /* WorkoutMusicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000049 /* WorkoutMusicPlayer.swift */; };
 		A100000000000000000000A1 /* AutomaticBlockScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000000A0 /* AutomaticBlockScheduler.swift */; };
+		A100000000000000000000A2 /* CloudRecordSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100000000000000000000A3 /* CloudRecordSync.swift */; };
 		A1000000000000000000006A /* suno_slot_01.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000004A /* suno_slot_01.wav */; };
 		A1000000000000000000006B /* suno_slot_02.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000004B /* suno_slot_02.wav */; };
 		A1000000000000000000006C /* suno_slot_03.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000004C /* suno_slot_03.wav */; };
@@ -131,6 +132,7 @@
 		A10000000000000000000048 /* WorkoutLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivityAttributes.swift; sourceTree = "<group>"; };
 		A10000000000000000000049 /* WorkoutMusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMusicPlayer.swift; sourceTree = "<group>"; };
 		A100000000000000000000A0 /* AutomaticBlockScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomaticBlockScheduler.swift; sourceTree = "<group>"; };
+		A100000000000000000000A3 /* CloudRecordSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudRecordSync.swift; sourceTree = "<group>"; };
 		A1000000000000000000004A /* suno_slot_01.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = suno_slot_01.wav; sourceTree = "<group>"; };
 		A1000000000000000000004B /* suno_slot_02.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = suno_slot_02.wav; sourceTree = "<group>"; };
 		A1000000000000000000004C /* suno_slot_03.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = suno_slot_03.wav; sourceTree = "<group>"; };
@@ -277,6 +279,7 @@
 				A10000000000000000000047 /* WorkoutLiveActivityService.swift */,
 				A10000000000000000000049 /* WorkoutMusicPlayer.swift */,
 				A100000000000000000000A0 /* AutomaticBlockScheduler.swift */,
+				A100000000000000000000A3 /* CloudRecordSync.swift */,
 				A10000000000000000000042 /* Haptics.swift */,
 				A10000000000000000000044 /* DatasetStore.swift */,
 			);
@@ -544,6 +547,7 @@
 				A10000000000000000000067 /* WorkoutLiveActivityService.swift in Sources */,
 				A10000000000000000000069 /* WorkoutMusicPlayer.swift in Sources */,
 				A100000000000000000000A1 /* AutomaticBlockScheduler.swift in Sources */,
+				A100000000000000000000A2 /* CloudRecordSync.swift in Sources */,
 				A10000000000000000000062 /* Haptics.swift in Sources */,
 				A10000000000000000000064 /* DatasetStore.swift in Sources */,
 				A10000000000000000000068 /* WorkoutLiveActivityAttributes.swift in Sources */,

@@ -185,6 +185,7 @@ final class AppStore: ObservableObject {
         AppDurableBackup.backupSettingsData(UserDefaults.standard.data(forKey: settingsKey))
         AppDurableBackup.backupRecords(records)
         AppDurableBackup.backupCompletedDay(UserDefaults.standard.string(forKey: Self.completedDayKey))
+        Task { await mergeCloudRecords() }
     }
 
     var todayRecordCount: Int {
@@ -605,6 +606,7 @@ final class AppStore: ObservableObject {
             UserDefaults.standard.removeObject(forKey: Self.pendingShieldStartKey)
         }
         saveRecords()
+        Task { await CloudRecordSync.push(record) }
         syncTargetRepsWithPlan()
         WorkoutLiveActivityService.end()
 
@@ -763,6 +765,18 @@ final class AppStore: ObservableObject {
             UserDefaults.standard.set(data, forKey: recordsKey)
             AppDurableBackup.backupRecords(records)
         }
+    }
+
+    func mergeCloudRecords() async {
+        let cloudRecords = await CloudRecordSync.fetchAll()
+        guard !cloudRecords.isEmpty else { return }
+
+        let localIDs = Set(records.map(\.id))
+        let newRecords = cloudRecords.filter { !localIDs.contains($0.id) }
+        guard !newRecords.isEmpty else { return }
+
+        records = (records + newRecords).sorted { $0.completedAt > $1.completedAt }
+        saveRecords()
     }
 
     private func applyWorkoutTimeBand() {
