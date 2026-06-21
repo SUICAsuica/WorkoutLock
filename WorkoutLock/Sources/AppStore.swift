@@ -316,6 +316,24 @@ final class AppStore: ObservableObject {
         return result.weekTargetReps(week: currentPlanWeek + 1)
     }
 
+    /// 1回の目安回数(targetReps)を「1セットあたり約20回」でセット分割する。
+    private static let approxRepsPerSet = 20
+
+    /// 今日のセット数。
+    var setsTarget: Int {
+        max(1, Int((Double(targetReps) / Double(Self.approxRepsPerSet)).rounded(.toNearestOrAwayFromZero)))
+    }
+
+    /// 1セットあたりの回数（合計をセット数で均等割り）。
+    var repsPerSet: Int {
+        max(1, Int((Double(targetReps) / Double(setsTarget)).rounded(.up)))
+    }
+
+    /// 「3セット × 20回」のような表示。
+    var setsSummary: String {
+        "\(setsTarget)セット × \(repsPerSet)回"
+    }
+
     var nextPlanTargetSummary: String {
         guard let result = currentPlanResult else { return "\(targetReps)回" }
         let next = result.weekTargetReps(week: currentPlanWeek + 2)
@@ -586,7 +604,7 @@ final class AppStore: ObservableObject {
         }
         saveRecords()
         syncTargetRepsWithPlan()
-        Task { await WorkoutLiveActivityService.endAll() }
+        WorkoutLiveActivityService.end()
 
         if isAlarmEnabled {
             Task { await scheduleDailyAlarm() }

@@ -3,61 +3,61 @@ import Foundation
 
 @MainActor
 enum WorkoutLiveActivityService {
-    static let finalCountdownSeconds: TimeInterval = 10
+    private static var current: Activity<WorkoutLiveActivityAttributes>?
 
-    static func scheduleFinalCountdown(
-        exercise: ExerciseKind,
-        targetReps: Int,
-        startDelaySeconds: TimeInterval,
-        triggerLabel: String
-    ) async {
-        let waitSeconds = max(0, startDelaySeconds - finalCountdownSeconds)
-        if waitSeconds > 0 {
-            try? await Task.sleep(nanoseconds: UInt64(waitSeconds * 1_000_000_000))
-        }
-
-        let remainingSeconds = min(finalCountdownSeconds, max(1, startDelaySeconds - waitSeconds))
-        await startCountdown(
-            exercise: exercise,
-            targetReps: targetReps,
-            remainingSeconds: remainingSeconds,
-            triggerLabel: triggerLabel
-        )
-    }
-
-    static func startCountdown(
-        exercise: ExerciseKind,
-        targetReps: Int,
-        remainingSeconds: TimeInterval = 10,
-        triggerLabel: String
-    ) async {
+    /// ワークアウト開始時に Live Activity / Dynamic Island を表示する。
+    static func start(exercise: ExerciseKind, targetReps: Int, totalSets: Int) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
-        await endAll()
+        Task { await endAll() }
 
-        let seconds = max(1, remainingSeconds)
-        let startAt = Date().addingTimeInterval(seconds)
         let attributes = WorkoutLiveActivityAttributes(exerciseTitle: exercise.title)
         let state = WorkoutLiveActivityAttributes.ContentState(
-            message: "あと\(Int(seconds.rounded()))秒で開始",
+            currentReps: 0,
             targetReps: targetReps,
-            triggerLabel: triggerLabel,
-            startAt: startAt
+            currentSet: 1,
+            totalSets: max(1, totalSets),
+            isComplete: false
         )
 
         do {
             if #available(iOS 16.2, *) {
-                let content = ActivityContent(state: state, staleDate: startAt.addingTimeInterval(20 * 60))
-                _ = try Activity.request(attributes: attributes, content: content, pushType: nil)
+                let content = ActivityContent(state: state, staleDate: Date().addingTimeInterval(60 * 60))
+                current = try Activity.request(attributes: attributes, content: content, pushType: nil)
             } else {
-                _ = try Activity.request(attributes: attributes, contentState: state, pushType: nil)
+                current = try Activity.request(attributes: attributes, contentState: state, pushType: nil)
             }
         } catch {
-            // Live Activities can be disabled by the user or unavailable while backgrounded.
+            // ユーザーが Live Activity を無効にしている等で失敗することがある。
         }
     }
 
-    static func endAll() async {
+    /// 進捗を更新する。
+    static func update(currentReps: Int, targetReps: Int, currentSet: Int, totalSets: Int, isComplete: Bool) {
+        guard let activity = current else { return }
+        let state = WorkoutLiveActivityAttributes.ContentState(
+            currentReps: currentReps,
+            targetReps: targetReps,
+            currentSet: currentSet,
+            totalSets: max(1, totalSets),
+            isComplete: isComplete
+        )
+        Task {
+            if #available(iOS 16.2, *) {
+                await activity.update(ActivityContent(state: state, staleDate: Date().addingTimeInterval(60 * 60)))
+            } else {
+                await activity.update(using: state)
+            }
+        }
+    }
+
+    /// 終了する。
+    static func end() {
+        current = nil
+        Task { await endAll() }
+    }
+
+    private static func endAll() async {
         for activity in Activity<WorkoutLiveActivityAttributes>.activities {
             if #available(iOS 16.2, *) {
                 await activity.end(nil, dismissalPolicy: .immediate)

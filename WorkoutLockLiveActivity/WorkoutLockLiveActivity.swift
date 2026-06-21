@@ -22,33 +22,45 @@ struct WorkoutLockLiveActivity: Widget {
                         .font(.caption.weight(.black))
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text("\(context.state.targetReps)回")
+                    Text(context.state.isComplete ? "OPEN" : "\(context.state.currentSet)/\(context.state.totalSets)セット")
                         .font(.headline.weight(.black))
                         .monospacedDigit()
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(context.state.triggerLabel)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(context.state.isComplete ? "達成！ロック解除" : "今のセット")
                             .font(.caption.weight(.bold))
-                        Text(timerInterval: Date()...context.state.startAt, countsDown: true)
-                            .font(.system(size: 28, weight: .black, design: .rounded))
-                            .monospacedDigit()
+                        HStack(alignment: .lastTextBaseline, spacing: 4) {
+                            Text("\(context.state.currentReps)")
+                                .font(.system(size: 30, weight: .black, design: .rounded))
+                                .monospacedDigit()
+                            Text("/ \(context.state.targetReps) 回")
+                                .font(.headline.weight(.black))
+                                .foregroundStyle(.orange)
+                        }
+                        ProgressView(value: progress(context.state))
+                            .tint(.orange)
                     }
                 }
             } compactLeading: {
                 Image(systemName: "figure.strengthtraining.traditional")
                     .foregroundStyle(.orange)
             } compactTrailing: {
-                Text(timerInterval: Date()...context.state.startAt, countsDown: true)
+                Text(context.state.isComplete ? "OPEN" : "\(context.state.currentReps)/\(context.state.targetReps)")
                     .font(.caption2.weight(.black))
                     .monospacedDigit()
-                    .frame(width: 42)
+                    .frame(width: 48)
             } minimal: {
                 Image(systemName: "figure.strengthtraining.traditional")
                     .foregroundStyle(.orange)
             }
         }
     }
+}
+
+private func progress(_ state: WorkoutLiveActivityAttributes.ContentState) -> Double {
+    guard state.targetReps > 0 else { return state.isComplete ? 1 : 0 }
+    return min(1, Double(state.currentReps) / Double(state.targetReps))
 }
 
 private struct LiveActivityLockScreenView: View {
@@ -63,18 +75,16 @@ private struct LiveActivityLockScreenView: View {
                 .foregroundStyle(.white)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(context.state.message)
+                Text(context.state.isComplete ? "達成！ロック解除" : "\(context.attributes.exerciseTitle) \(context.state.currentSet)/\(context.state.totalSets)セット")
                     .font(.headline.weight(.black))
-                Text("\(context.attributes.exerciseTitle) \(context.state.targetReps)回")
+                Text("\(context.state.currentReps) / \(context.state.targetReps) 回")
                     .font(.subheadline.weight(.bold))
-                Text(context.state.triggerLabel)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.black.opacity(0.62))
+                    .monospacedDigit()
             }
 
             Spacer()
 
-            Text(timerInterval: Date()...context.state.startAt, countsDown: true)
+            Text(context.state.isComplete ? "OPEN" : "\(Int(progress(context.state) * 100))%")
                 .font(.system(size: 24, weight: .black, design: .rounded))
                 .monospacedDigit()
         }

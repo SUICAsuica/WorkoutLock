@@ -111,15 +111,18 @@ struct HomeView: View {
                     .foregroundStyle(WorkoutInk.secondary)
             } else {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text("\(store.targetReps)")
+                    Text("\(store.setsTarget)")
                         .font(.system(size: 76, weight: .black, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(WorkoutInk.primary)
-                    Text("回")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                    Text("セット")
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundStyle(WorkoutInk.secondary)
                         .padding(.bottom, 12)
                 }
+                Text("1セット \(store.repsPerSet)回")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(WorkoutInk.secondary)
                 todayNextStrip
             }
         }
@@ -131,7 +134,7 @@ struct HomeView: View {
 
     private var todayNextStrip: some View {
         HStack(spacing: 10) {
-            TodayNextChip(title: "今日", value: "\(store.targetReps)回", emphasized: true)
+            TodayNextChip(title: "今日", value: "\(store.setsTarget)セット", emphasized: true)
             Image(systemName: "arrow.right")
                 .font(.system(size: 15, weight: .black))
                 .foregroundStyle(WorkoutInk.secondary)
@@ -722,15 +725,16 @@ struct ProgressBoardView: View {
             musicPlayer.stop()
             return
         }
-        let availableTracks = WorkoutMusicTrack.availableRandomPool()
+        let track = WorkoutMusicTrack.randomWorkoutTrack(fallback: store.selectedMusicTrack)
         let bundledTracks = WorkoutMusicTrack.allCases.filter { $0.bundledURL() != nil }
-        let track = availableTracks.randomElement() ?? store.selectedMusicTrack
-        musicPlayer.start(
+        if let started = musicPlayer.start(
             track: track,
             volume: store.workoutMusicVolume,
             isEnabled: store.workoutMusicEnabled,
-            fallbackTracks: (availableTracks + bundledTracks).filter { $0 != track }
-        )
+            fallbackTracks: bundledTracks.filter { $0 != track }
+        ) {
+            WorkoutMusicTrack.saveLastWorkoutTrack(started)
+        }
     }
 }
 

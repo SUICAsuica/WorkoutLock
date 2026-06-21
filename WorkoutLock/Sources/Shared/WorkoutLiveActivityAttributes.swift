@@ -3,10 +3,11 @@ import Foundation
 
 struct WorkoutLiveActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
-        var message: String
+        var currentReps: Int
         var targetReps: Int
-        var triggerLabel: String
-        var startAt: Date
+        var currentSet: Int
+        var totalSets: Int
+        var isComplete: Bool
     }
 
     var exerciseTitle: String

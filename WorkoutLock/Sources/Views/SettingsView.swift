@@ -65,15 +65,6 @@ struct SettingsView: View {
                                 Haptics.selection()
                             }
 
-                        Picker("曲", selection: $store.selectedMusicTrack) {
-                            ForEach(WorkoutMusicTrack.allCases) { track in
-                                Text(track.title).tag(track)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .tint(WorkoutTheme.accent)
-                        .disabled(!store.workoutMusicEnabled)
-
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("音量")
@@ -90,7 +81,9 @@ struct SettingsView: View {
                                 .disabled(!store.workoutMusicEnabled)
                         }
 
-                        SettingsLine(title: "選択中", value: store.selectedMusicTrack.subtitle)
+                        Text("曲は毎回ランダムで流れます。")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(WorkoutInk.secondary)
                     }
                     .settingsPanel()
 

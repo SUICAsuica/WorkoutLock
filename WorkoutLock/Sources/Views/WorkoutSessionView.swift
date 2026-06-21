@@ -23,6 +23,8 @@ struct WorkoutSessionView: View {
     @State private var activeMusicTrack: WorkoutMusicTrack = .sunoSlot01
     @State private var hasStartedMusic = false
     @State private var shareURL: URL?
+    @State private var completedSets = 0
+    @State private var setStartRepOffset = 0
 
     let exercise: ExerciseKind
     let targetReps: Int
@@ -45,9 +47,14 @@ struct WorkoutSessionView: View {
         tutorialPlan != nil || onFinished != nil
     }
 
+    private var setsTarget: Int { isTutorial ? 1 : max(1, store.setsTarget) }
+    private var repsPerSet: Int { isTutorial ? max(1, targetReps) : max(1, store.repsPerSet) }
+    private var withinSetReps: Int { min(repsPerSet, max(0, camera.frame.repCount - setStartRepOffset)) }
+    private var displaySetIndex: Int { min(setsTarget, completedSets + 1) }
+
     private var progress: Double {
-        guard targetReps > 0 else { return 1 }
-        return min(Double(camera.frame.repCount) / Double(targetReps), 1)
+        let done = Double(completedSets) + (Double(withinSetReps) / Double(repsPerSet))
+        return min(1, done / Double(setsTarget))
     }
 
     var body: some View {
@@ -97,11 +104,17 @@ struct WorkoutSessionView: View {
             camera.applyCalibration(isTutorial ? nil : store.tutorialCalibration)
             activeMusicTrack = WorkoutMusicTrack.randomWorkoutTrack(fallback: store.selectedMusicTrack)
             hasStartedMusic = false
+            completedSets = 0
+            setStartRepOffset = 0
             camera.start()
+            if !isTutorial {
+                WorkoutLiveActivityService.start(exercise: exercise, targetReps: repsPerSet, totalSets: setsTarget)
+            }
         }
         .onDisappear {
             camera.stop()
             musicPlayer.stop()
+            WorkoutLiveActivityService.end()
         }
         .onChange(of: store.workoutMusicVolume) { _, volume in
             musicPlayer.updateVolume(volume)
@@ -124,11 +137,7 @@ struct WorkoutSessionView: View {
         }
         .onChange(of: camera.frame.repCount) { oldValue, newValue in
             guard newValue > oldValue else { return }
-            if newValue < targetReps {
-                Haptics.mediumTap()
-            }
-            guard newValue >= targetReps else { return }
-            completeIfNeeded(actualReps: newValue)
+            handleRepProgress(newRepCount: newValue)
         }
         .onChange(of: camera.firstPoseSnapshotData) { oldValue, newValue in
             guard oldValue == nil, newValue != nil else { return }
@@ -166,24 +175,24 @@ struct WorkoutSessionView: View {
 
     private var topBar: some View {
         HStack(spacing: 18) {
-            SessionMetric(value: "\(targetReps)", label: "目標")
-            SessionMetric(value: "\(min(camera.frame.repCount, targetReps))", label: "完了")
+            SessionMetric(value: "\(repsPerSet)", label: "1セット")
+            SessionMetric(value: "\(min(completedSets, setsTarget))/\(setsTarget)", label: "セット")
             SessionMetric(value: isComplete ? "OPEN" : "LOCK", label: "状態")
         }
     }
 
     private var centerPanel: some View {
         VStack(spacing: 8) {
-            Text("\(min(camera.frame.repCount, targetReps))")
+            Text("\(withinSetReps)")
                 .font(.system(size: 148, weight: .black, design: .rounded))
                 .monospacedDigit()
                 .minimumScaleFactor(0.55)
 
-            Text("/ \(targetReps)")
+            Text("/ \(repsPerSet)回")
                 .font(.system(size: 34, weight: .black, design: .rounded))
                 .foregroundStyle(WorkoutTheme.orange)
 
-            Text(exercise.title)
+            Text(isComplete ? exercise.title : "セット \(displaySetIndex) / \(setsTarget)")
                 .font(.system(size: 26, weight: .black, design: .rounded))
                 .foregroundStyle(.white.opacity(0.68))
                 .padding(.top, 4)
@@ -300,6 +309,34 @@ struct WorkoutSessionView: View {
             .tint(WorkoutTheme.orange)
             #endif
         }
+    }
+
+    private func handleRepProgress(newRepCount: Int) {
+        let within = newRepCount - setStartRepOffset
+        if within >= repsPerSet {
+            completedSets += 1
+            setStartRepOffset = newRepCount
+            Haptics.success()
+            if completedSets >= setsTarget {
+                updateLiveActivity(isComplete: true)
+                completeIfNeeded(actualReps: newRepCount)
+                return
+            }
+        } else {
+            Haptics.mediumTap()
+        }
+        updateLiveActivity(isComplete: false)
+    }
+
+    private func updateLiveActivity(isComplete: Bool) {
+        guard !isTutorial else { return }
+        WorkoutLiveActivityService.update(
+            currentReps: withinSetReps,
+            targetReps: repsPerSet,
+            currentSet: displaySetIndex,
+            totalSets: setsTarget,
+            isComplete: isComplete
+        )
     }
 
     private func completeIfNeeded(actualReps: Int) {

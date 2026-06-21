@@ -7,7 +7,6 @@ struct WorkoutLockApp: App {
     @UIApplicationDelegateAdaptor(WorkoutLockAppDelegate.self) private var appDelegate
     @StateObject private var store = AppStore()
     @StateObject private var locationTrigger = LocationTriggerService()
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -15,36 +14,10 @@ struct WorkoutLockApp: App {
                 .environmentObject(store)
                 .environmentObject(locationTrigger)
                 .onAppear {
-                    locationTrigger.startMonitoring(locations: store.triggerLocations)
+                    // 場所トリガーの自動通知/自動開始は廃止。残っている予約を一掃する。
+                    locationTrigger.cancelAllArrivalTriggers()
+                    WorkoutLaunchRequest.consumePending()
                     store.resumePendingShieldingIfNeeded()
-                    if ProcessInfo.processInfo.arguments.contains("--test-arrival-notification") {
-                        Task { @MainActor in
-                            UserDefaults.standard.removeObject(forKey: AppStore.completedDayKey)
-                            AppStore.mirrorCompletedDayToAppGroup(nil)
-                            if let triggerDate = try? await NotificationScheduler.scheduleTestStartNotification(
-                                exercise: store.selectedExercise,
-                                targetReps: store.targetReps,
-                                after: 12
-                            ) {
-                                store.schedulePendingShielding(at: triggerDate)
-                            }
-                            await WorkoutLiveActivityService.scheduleFinalCountdown(
-                                exercise: store.selectedExercise,
-                                targetReps: store.targetReps,
-                                startDelaySeconds: 12,
-                                triggerLabel: "家 到着10分後"
-                            )
-                        }
-                    }
-                }
-                .onChange(of: store.triggerLocations) { _, locations in
-                    locationTrigger.startMonitoring(locations: locations)
-                }
-                .onChange(of: scenePhase) { _, phase in
-                    guard phase == .active else { return }
-                    // 前面復帰のたびに監視を貼り直し、すでに到着済みの場所を再評価する。
-                    locationTrigger.startMonitoring(locations: store.triggerLocations)
-                    locationTrigger.refreshTriggerStates()
                 }
         }
     }
@@ -64,12 +37,9 @@ final class WorkoutLockAppDelegate: NSObject, UIApplicationDelegate, UNUserNotif
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
+        // 前面で通知が出ても勝手に開始しない（バナー表示のみ）。開始はタップ時だけ。
         await MainActor.run {
             AppStore.applyStoredDueShieldingIfNeeded()
-            if notification.request.content.userInfo["route"] as? String == "workout" {
-                WorkoutLaunchRequest.markPending()
-                NotificationCenter.default.post(name: .workoutStartRequested, object: nil)
-            }
         }
         return [.banner, .list, .sound, .badge]
     }

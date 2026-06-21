@@ -110,177 +110,45 @@ final class LocationTriggerService: NSObject, ObservableObject {
         "workout-lock-location-\(location.id.uuidString)"
     }
 
-    private func arrivalNotificationIdentifier(for location: HomeLocation) -> String {
-        "workout-lock-arrival-\(location.id.uuidString)"
-    }
 
-    private func pendingArrivalStartKey(for location: HomeLocation) -> String {
-        "workout-lock.pending-arrival-start.\(location.id.uuidString)"
-    }
-
-    private func effectiveDelayMinutes(for location: HomeLocation) -> Int {
-        max(Self.minimumStayMinutes, location.effectiveStartDelayMinutes)
-    }
-
-    private func pendingArrivalStartDate(for location: HomeLocation) -> Date? {
-        let timestamp = UserDefaults.standard.double(forKey: pendingArrivalStartKey(for: location))
-        guard timestamp > Date().timeIntervalSince1970 else { return nil }
-        return Date(timeIntervalSince1970: timestamp)
-    }
-
-    private func scheduleArrivalNotification(for location: HomeLocation) {
-        guard UserDefaults.standard.string(forKey: AppStore.completedDayKey) != AppStore.dayKey(for: .now) else {
-            statusText = "今日は完了済みなので通知しません"
-            return
-        }
-
-        if pendingArrivalStartDate(for: location) != nil {
-            statusText = "\(location.triggerSummary)の通知を予約済みです"
-            return
-        }
-
-        Task { @MainActor in
-            let center = UNUserNotificationCenter.current()
-            do {
-                let granted = try await center.requestAuthorization(options: [.alert, .badge, .sound])
-                guard granted else {
-                    statusText = "通知が許可されていないため、到着後通知を出せません"
-                    return
-                }
-                center.setNotificationCategories([NotificationScheduler.workoutCategory])
-
-                let content = UNMutableNotificationContent()
-                content.title = "筋トレ開始"
-                content.body = "\(location.kind.title)に着いて\(self.effectiveDelayMinutes(for: location))分。スクワットを始めてアプリ制限を解除しましょう。"
-                content.sound = .default
-                content.categoryIdentifier = NotificationScheduler.workoutCategoryIdentifier
-                content.interruptionLevel = .timeSensitive
-                content.userInfo = ["route": "workout", "trigger": "location"]
-
-                let startDelaySeconds = TimeInterval(self.effectiveDelayMinutes(for: location) * 60)
-                let startDate = Date().addingTimeInterval(startDelaySeconds)
-                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: startDelaySeconds, repeats: false)
-                let request = UNNotificationRequest(
-                    identifier: self.arrivalNotificationIdentifier(for: location),
-                    content: content,
-                    trigger: trigger
-                )
-                try await center.add(request)
-                UserDefaults.standard.set(startDate.timeIntervalSince1970, forKey: self.pendingArrivalStartKey(for: location))
-                AppStore.scheduleStoredShielding(at: startDate)
-
-                let targetReps = max(1, UserDefaults.standard.integer(forKey: AppStore.liveActivityTargetRepsKey))
-                let exerciseRawValue = UserDefaults.standard.string(forKey: AppStore.liveActivityExerciseKey)
-                let exercise = exerciseRawValue.flatMap(ExerciseKind.init(rawValue:)) ?? .squat
-
-                await WorkoutLiveActivityService.scheduleFinalCountdown(
-                    exercise: exercise,
-                    targetReps: targetReps,
-                    startDelaySeconds: startDelaySeconds,
-                    triggerLabel: location.triggerSummary
-                )
-            } catch {
-                statusText = "到着後通知の予約に失敗しました: \(error.localizedDescription)"
-            }
-        }
-    }
-
-    private func cancelArrivalNotification(for location: HomeLocation) {
-        let key = pendingArrivalStartKey(for: location)
-        let timestamp = UserDefaults.standard.double(forKey: key)
-        let scheduledDate = timestamp > 0 ? Date(timeIntervalSince1970: timestamp) : nil
-
-        UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: [arrivalNotificationIdentifier(for: location)]
-        )
-        UserDefaults.standard.removeObject(forKey: key)
-
-        if let scheduledDate {
-            AppStore.cancelStoredShielding(scheduledAt: scheduledDate)
-        }
-
-        Task { @MainActor in
-            await WorkoutLiveActivityService.endAll()
-        }
-
-        statusText = "\(location.triggerSummary)の通知を解除しました"
-    }
-
+    // 場所トリガーの自動通知・自動開始は廃止。到着しても何もしない。
     private func handleInsideRegion(identifier: String) {
-        guard let location = monitoredLocations[identifier] else { return }
+        guard monitoredLocations[identifier] != nil else { return }
         insideRegionIdentifiers.insert(identifier)
-        statusText = "\(location.triggerSummary)に滞在中。\(effectiveDelayMinutes(for: location))分で開始します"
-        // 背面/終了向け: 到着+遅延で通知（タップで開始）
-        scheduleArrivalNotification(for: location)
-        // 前面向け: アプリ内の滞在タイマーで自動開始（通知許可に依存しない）
-        startDwellTimer(for: location)
     }
 
     private func handleOutsideRegion(identifier: String) {
-        guard let location = monitoredLocations[identifier] else { return }
         insideRegionIdentifiers.remove(identifier)
-        dwellTasks[identifier]?.cancel()
-        dwellTasks[identifier] = nil
-        cancelArrivalNotification(for: location)
     }
 
-    /// 監視中リージョンの内外を再評価する。起動・前面復帰時に呼ぶと
-    /// 「すでに到着済み」でも滞在判定・タイマー再開ができる。
     func refreshTriggerStates() {
-        for region in manager.monitoredRegions where region.identifier.hasPrefix("workout-lock-location-") {
-            manager.requestState(for: region)
-        }
+        // 自動トリガー廃止のため何もしない。
     }
 
-    /// 前面滞在タイマー。残り時間後にまだ滞在中なら自動でワークアウト開始要求を出す。
-    private func startDwellTimer(for location: HomeLocation) {
-        guard UserDefaults.standard.string(forKey: AppStore.completedDayKey) != AppStore.dayKey(for: .now) else { return }
+    /// 予約済みの到着通知・保留・リージョン監視・滞在タイマーをすべて解除する。
+    func cancelAllArrivalTriggers() {
+        for task in dwellTasks.values { task.cancel() }
+        dwellTasks.removeAll()
+        insideRegionIdentifiers.removeAll()
 
-        let identifier = regionIdentifier(for: location)
-        dwellTasks[identifier]?.cancel()
+        manager.monitoredRegions
+            .filter { $0.identifier.hasPrefix("workout-lock-location-") }
+            .forEach { manager.stopMonitoring(for: $0) }
 
-        let fireDate = pendingArrivalStartDate(for: location)
-            ?? Date().addingTimeInterval(TimeInterval(effectiveDelayMinutes(for: location) * 60))
-        let remaining = max(0, fireDate.timeIntervalSinceNow)
-
-        dwellTasks[identifier] = Task { [weak self] in
-            if remaining > 0 {
-                try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+        let center = UNUserNotificationCenter.current()
+        center.getPendingNotificationRequests { requests in
+            let ids = requests.map(\.identifier).filter { $0.hasPrefix("workout-lock-arrival-") }
+            if !ids.isEmpty {
+                center.removePendingNotificationRequests(withIdentifiers: ids)
             }
-            if Task.isCancelled { return }
-            await self?.fireDwell(identifier: identifier, location: location)
         }
-    }
 
-    private func fireDwell(identifier: String, location: HomeLocation) {
-        dwellTasks[identifier] = nil
-        guard insideRegionIdentifiers.contains(identifier) else { return }
-        guard UserDefaults.standard.string(forKey: AppStore.completedDayKey) != AppStore.dayKey(for: .now) else { return }
-        WorkoutLaunchRequest.markPending()
-        NotificationCenter.default.post(name: .workoutStartRequested, object: nil)
-        statusText = "\(location.triggerSummary)で自動開始しました"
-    }
-
-    /// 動作確認用。現地に行かなくても、前面の滞在タイマー→自動開始の経路を短時間で試す。
-    func runForegroundTriggerTest(afterSeconds seconds: Int = 30) {
-        let identifier = "workout-lock-location-test"
-        insideRegionIdentifiers.insert(identifier)
-        dwellTasks[identifier]?.cancel()
-        statusText = "テスト: \(seconds)秒後に自動開始します（今日タブで確認）"
-
-        dwellTasks[identifier] = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(max(1, seconds)) * 1_000_000_000)
-            if Task.isCancelled { return }
-            await self?.fireTestDwell(identifier: identifier)
+        let defaults = UserDefaults.standard
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("workout-lock.pending-arrival-start.") {
+            defaults.removeObject(forKey: key)
         }
-    }
 
-    private func fireTestDwell(identifier: String) {
-        dwellTasks[identifier] = nil
-        insideRegionIdentifiers.remove(identifier)
-        WorkoutLaunchRequest.markPending()
-        NotificationCenter.default.post(name: .workoutStartRequested, object: nil)
-        statusText = "テスト: 自動開始しました"
+        statusText = "場所トリガーは使いません"
     }
 }
 

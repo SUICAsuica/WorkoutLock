@@ -425,7 +425,8 @@ enum WorkoutMusicTrack: String, Codable, CaseIterable, Identifiable {
     }
 
     static var randomPool: [WorkoutMusicTrack] {
-        [.sunoSlot01, .sunoSlot02, .sunoSlot03]
+        // 実音源がある全トラックを対象にする（毎回できるだけ変える）。
+        WorkoutMusicTrack.allCases
     }
 
     static var lastWorkoutTrackDefaultsKey: String {
