@@ -5,6 +5,7 @@ import UserNotifications
 @main
 struct WorkoutLockApp: App {
     @UIApplicationDelegateAdaptor(WorkoutLockAppDelegate.self) private var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var store = AppStore()
     @StateObject private var locationTrigger = LocationTriggerService()
 
@@ -14,11 +15,15 @@ struct WorkoutLockApp: App {
                 .environmentObject(store)
                 .environmentObject(locationTrigger)
                 .onAppear {
-                    // 場所トリガーの自動通知/自動開始は廃止。残っている予約を一掃する。
-                    locationTrigger.cancelAllArrivalTriggers()
+                    locationTrigger.startMonitoring(locations: store.triggerLocations)
                     ScreenShieldingService.reapplyWorkoutSessionLockIfActive()
                     WorkoutLaunchRequest.consumePending()
                     store.resumePendingShieldingIfNeeded()
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    guard phase == .active else { return }
+                    locationTrigger.startMonitoring(locations: store.triggerLocations)
+                    ScreenShieldingService.reapplyWorkoutSessionLockIfActive()
                 }
         }
     }

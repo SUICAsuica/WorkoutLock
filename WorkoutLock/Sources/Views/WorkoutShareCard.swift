@@ -96,15 +96,25 @@ private struct ShareStat: View {
 }
 
 enum WorkoutShareImageRenderer {
-    /// シェアカードをPNG画像化し、共有可能な一時ファイルURLを返す。
     @MainActor
-    static func makeImageURL(record: WorkoutRecord, streakDays: Int, totalReps: Int) -> URL? {
+    private static func makeUIImage(record: WorkoutRecord, streakDays: Int, totalReps: Int) -> UIImage? {
         let card = WorkoutShareCard(record: record, streakDays: streakDays, totalReps: totalReps)
         let renderer = ImageRenderer(content: card)
         renderer.scale = 3
+        return renderer.uiImage
+    }
 
+    /// シェアカードをPNG画像化し、Dataとして返す。
+    @MainActor
+    static func makePNGData(record: WorkoutRecord, streakDays: Int, totalReps: Int) -> Data? {
+        makeUIImage(record: record, streakDays: streakDays, totalReps: totalReps)?.pngData()
+    }
+
+    /// シェアカードをPNG画像化し、共有可能な一時ファイルURLを返す。
+    @MainActor
+    static func makeImageURL(record: WorkoutRecord, streakDays: Int, totalReps: Int) -> URL? {
         guard
-            let uiImage = renderer.uiImage,
+            let uiImage = makeUIImage(record: record, streakDays: streakDays, totalReps: totalReps),
             let data = uiImage.pngData()
         else {
             return nil
@@ -118,5 +128,23 @@ enum WorkoutShareImageRenderer {
         } catch {
             return nil
         }
+    }
+}
+
+enum WorkoutInstagramShare {
+    @discardableResult
+    @MainActor
+    static func shareToStories(pngData: Data, completion: @escaping (Bool) -> Void) -> Bool {
+        let pasteboardItem: [String: Any] = ["com.instagram.sharedSticker.backgroundImage": pngData]
+        UIPasteboard.general.setItems(
+            [pasteboardItem],
+            options: [.expirationDate: Date().addingTimeInterval(60 * 5)]
+        )
+
+        let url = URL(string: "instagram-stories://share?source_application=com.kosakanao.WorkoutLock")!
+        UIApplication.shared.open(url, options: [:]) { success in
+            completion(success)
+        }
+        return true
     }
 }

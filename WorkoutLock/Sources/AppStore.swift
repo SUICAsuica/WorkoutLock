@@ -578,7 +578,9 @@ final class AppStore: ObservableObject {
 
         let timestamp = UserDefaults.standard.double(forKey: Self.pendingShieldStartKey)
         guard timestamp > 0, Date().timeIntervalSince1970 >= timestamp else { return }
-        ScreenShieldingService.applyStoredShielding(isEnabled: true)
+        if ScreenShieldingService.applyStoredShielding(isEnabled: true) {
+            ScreenShieldingService.setWorkoutSessionLockActive(true)
+        }
     }
 
     func completeWorkout(
@@ -664,10 +666,6 @@ final class AppStore: ObservableObject {
     }
 
     private func normalizeTriggerPreference() {
-        if triggerPreference == .both, !triggerLocations.isEmpty {
-            triggerPreference = .homeArrival
-        }
-
         guard triggerPreference == .homeArrival else { return }
         isAlarmEnabled = false
         notificationMessage = homeTriggerLabel.map { "\($0)に通知します" } ?? "帰宅後に通知します"

@@ -850,6 +850,7 @@ private struct WorkoutRecordDetailView: View {
     let record: WorkoutRecord
 
     @State private var shareURL: URL?
+    @State private var shareStatusText: String?
 
     var body: some View {
         NavigationStack {
@@ -896,23 +897,46 @@ private struct WorkoutRecordDetailView: View {
     @ViewBuilder
     private var shareButton: some View {
         if let shareURL {
-            ShareLink(
-                item: shareURL,
-                message: Text("筋トレロックで\(record.actualReps)回達成！ #筋トレロック"),
-                preview: SharePreview("筋トレロック \(record.actualReps)回達成", image: shareURL)
-            ) {
-                HStack(spacing: 12) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 22, weight: .black))
-                    Text("結果をシェア")
-                        .font(.system(size: 24, weight: .black, design: .rounded))
+            VStack(spacing: 10) {
+                ShareLink(
+                    item: shareURL,
+                    message: Text("筋トレロックで\(record.actualReps)回達成！ #筋トレロック"),
+                    preview: SharePreview("筋トレロック \(record.actualReps)回達成", image: shareURL)
+                ) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 22, weight: .black))
+                        Text("結果をシェア")
+                            .font(.system(size: 24, weight: .black, design: .rounded))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 72)
+                    .foregroundStyle(.white)
+                    .background(.black, in: RoundedRectangle(cornerRadius: 8))
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 72)
-                .foregroundStyle(.white)
-                .background(.black, in: RoundedRectangle(cornerRadius: 8))
+                .buttonStyle(.plain)
+
+                Button(action: shareToInstagramStories) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "camera")
+                            .font(.system(size: 22, weight: .black))
+                        Text("Instagramでシェア")
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 72)
+                    .foregroundStyle(.white)
+                    .background(.black, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+
+                if let shareStatusText {
+                    Text(shareStatusText)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(WorkoutInk.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
-            .buttonStyle(.plain)
         } else {
             HStack(spacing: 12) {
                 ProgressView()
@@ -934,6 +958,23 @@ private struct WorkoutRecordDetailView: View {
             streakDays: store.streakDays,
             totalReps: store.totalReps
         )
+    }
+
+    private func shareToInstagramStories() {
+        shareStatusText = nil
+        guard let pngData = WorkoutShareImageRenderer.makePNGData(
+            record: record,
+            streakDays: store.streakDays,
+            totalReps: store.totalReps
+        ) else {
+            shareStatusText = "シェア画像を準備できませんでした。"
+            return
+        }
+
+        WorkoutInstagramShare.shareToStories(pngData: pngData) { success in
+            guard !success else { return }
+            shareStatusText = "Instagramを開けませんでした。通常の共有を使えます。"
+        }
     }
 }
 

@@ -6,6 +6,12 @@ import UserNotifications
 final class LocationTriggerService: NSObject, ObservableObject {
     private static let triggerRadiusMeters: CLLocationDistance = 100
     private static let minimumStayMinutes = 10
+    private static let appGroupIdentifier = "group.com.kosakanao.WorkoutLock"
+    private static let completedDayKey = "workout-lock.completed-day"
+    private static let arrivalNotificationIdentifier = "workout-lock-arrival"
+    private static var sharedDefaults: UserDefaults {
+        UserDefaults(suiteName: appGroupIdentifier) ?? .standard
+    }
 
     @Published private(set) var statusText = "帰宅地点は未設定です"
     @Published private(set) var capturedHomeLocation: HomeLocation?
@@ -57,6 +63,8 @@ final class LocationTriggerService: NSObject, ObservableObject {
 
     func startMonitoring(locations: [HomeLocation]) {
         guard !locations.isEmpty else {
+            monitoredLocations.removeAll()
+            insideRegionIdentifiers.removeAll()
             applyMonitoring(locations: [])
             return
         }
@@ -74,6 +82,7 @@ final class LocationTriggerService: NSObject, ObservableObject {
             statusText = "位置トリガーの許可を確認しています"
             manager.requestAlwaysAuthorization()
         case .authorizedWhenInUse:
+            isWaitingForPermission = true
             statusText = "バックグラウンド位置トリガーの許可を確認しています"
             manager.requestAlwaysAuthorization()
         case .authorizedAlways:
@@ -86,6 +95,8 @@ final class LocationTriggerService: NSObject, ObservableObject {
     }
 
     private func applyMonitoring(locations: [HomeLocation]) {
+        insideRegionIdentifiers.removeAll()
+
         manager.monitoredRegions
             .filter { $0.identifier.hasPrefix("workout-lock-location-") }
             .forEach { manager.stopMonitoring(for: $0) }
@@ -111,18 +122,38 @@ final class LocationTriggerService: NSObject, ObservableObject {
     }
 
 
-    // 場所トリガーの自動通知・自動開始は廃止。到着しても何もしない。
     private func handleInsideRegion(identifier: String) {
-        guard monitoredLocations[identifier] != nil else { return }
-        insideRegionIdentifiers.insert(identifier)
+        guard let location = monitoredLocations[identifier] else { return }
+        guard insideRegionIdentifiers.insert(identifier).inserted else { return }
+        handleArrival(location: location)
     }
 
     private func handleOutsideRegion(identifier: String) {
-        insideRegionIdentifiers.remove(identifier)
+        _ = identifier
     }
 
     func refreshTriggerStates() {
-        // 自動トリガー廃止のため何もしない。
+        for identifier in insideRegionIdentifiers {
+            guard let location = monitoredLocations[identifier] else { continue }
+            handleArrival(location: location)
+        }
+    }
+
+    private func handleArrival(location: HomeLocation) {
+        guard !Self.hasCompletedToday else {
+            statusText = "今日は完了済みです"
+            return
+        }
+
+        guard ScreenShieldingService.applyStoredShielding(isEnabled: true) else {
+            ScreenShieldingService.setWorkoutSessionLockActive(false)
+            statusText = "ブロック対象アプリが未選択です"
+            return
+        }
+
+        ScreenShieldingService.setWorkoutSessionLockActive(true)
+        statusText = "\(location.triggerSummary)を検知。アプリをロックしました"
+        Self.sendArrivalNotification()
     }
 
     /// 予約済みの到着通知・保留・リージョン監視・滞在タイマーをすべて解除する。
@@ -137,7 +168,9 @@ final class LocationTriggerService: NSObject, ObservableObject {
 
         let center = UNUserNotificationCenter.current()
         center.getPendingNotificationRequests { requests in
-            let ids = requests.map(\.identifier).filter { $0.hasPrefix("workout-lock-arrival-") }
+            let ids = requests.map(\.identifier).filter {
+                $0 == Self.arrivalNotificationIdentifier || $0.hasPrefix("workout-lock-arrival-")
+            }
             if !ids.isEmpty {
                 center.removePendingNotificationRequests(withIdentifiers: ids)
             }
@@ -148,7 +181,40 @@ final class LocationTriggerService: NSObject, ObservableObject {
             defaults.removeObject(forKey: key)
         }
 
-        statusText = "場所トリガーは使いません"
+        statusText = "場所トリガーを停止しました"
+    }
+
+    private static var hasCompletedToday: Bool {
+        sharedDefaults.string(forKey: completedDayKey) == dayKey(for: .now)
+    }
+
+    private static func dayKey(for date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
+    }
+
+    private static func sendArrivalNotification() {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            guard granted else { return }
+
+            let content = UNMutableNotificationContent()
+            content.title = "筋トレロック"
+            content.body = "帰宅を検知。アプリをロックしました。スクワットで解除"
+            content.sound = .default
+            content.badge = 1
+            content.userInfo = ["route": "workout"]
+            content.interruptionLevel = .timeSensitive
+
+            center.removePendingNotificationRequests(withIdentifiers: [arrivalNotificationIdentifier])
+            center.removeDeliveredNotifications(withIdentifiers: [arrivalNotificationIdentifier])
+            let request = UNNotificationRequest(
+                identifier: arrivalNotificationIdentifier,
+                content: content,
+                trigger: nil
+            )
+            center.add(request)
+        }
     }
 }
 
@@ -159,7 +225,21 @@ extension LocationTriggerService: CLLocationManagerDelegate {
             guard self.isWaitingForPermission else { return }
             self.isWaitingForPermission = false
             if !self.monitoredLocations.isEmpty {
-                self.applyMonitoring(locations: Array(self.monitoredLocations.values))
+                switch self.manager.authorizationStatus {
+                case .authorizedAlways:
+                    self.applyMonitoring(locations: Array(self.monitoredLocations.values))
+                case .authorizedWhenInUse:
+                    self.statusText = "常に許可にすると帰宅トリガーが使えます"
+                    self.isWaitingForPermission = true
+                    self.manager.requestAlwaysAuthorization()
+                case .denied, .restricted:
+                    self.statusText = "位置情報が許可されていません。設定アプリから許可してください。"
+                case .notDetermined:
+                    self.isWaitingForPermission = true
+                    self.manager.requestAlwaysAuthorization()
+                @unknown default:
+                    self.statusText = "位置情報の状態を確認できません"
+                }
             } else {
                 self.requestLocation(kind: self.pendingKind, delayMinutes: self.pendingDelayMinutes)
             }

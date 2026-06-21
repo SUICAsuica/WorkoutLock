@@ -11,10 +11,18 @@ import ManagedSettings
 final class ScreenShieldingService: ObservableObject {
     @Published private(set) var statusText = "未接続"
 
+    private static let appGroupIdentifier = "group.com.kosakanao.WorkoutLock"
     private static let sessionLockActiveKey = "workout-lock.session-lock-active"
+    private static var sharedDefaults: UserDefaults {
+        UserDefaults(suiteName: appGroupIdentifier) ?? .standard
+    }
 
     static var isWorkoutSessionLockActive: Bool {
-        UserDefaults.standard.bool(forKey: sessionLockActiveKey)
+        sharedDefaults.bool(forKey: sessionLockActiveKey)
+    }
+
+    static func setWorkoutSessionLockActive(_ isActive: Bool) {
+        sharedDefaults.set(isActive, forKey: sessionLockActiveKey)
     }
 
     static func reapplyWorkoutSessionLockIfActive() {
@@ -30,7 +38,7 @@ final class ScreenShieldingService: ObservableObject {
 
         guard hasSelection else {
             managedSettingsStore.clearAllSettings()
-            UserDefaults.standard.set(false, forKey: sessionLockActiveKey)
+            setWorkoutSessionLockActive(false)
             return
         }
 
@@ -48,9 +56,6 @@ final class ScreenShieldingService: ObservableObject {
 
     private let managedSettingsStore = ManagedSettingsStore(named: ManagedSettingsStore.Name("WorkoutLock"))
     private static let selectionKey = "workout-lock.family-activity-selection"
-    private static var sharedDefaults: UserDefaults {
-        UserDefaults(suiteName: "group.com.kosakanao.WorkoutLock") ?? .standard
-    }
     #endif
 
     var capabilityText: String {
@@ -166,19 +171,19 @@ final class ScreenShieldingService: ObservableObject {
         #if canImport(FamilyControls) && canImport(ManagedSettings)
         guard hasConfiguredSelection else {
             statusText = "ブロック対象が未選択です。設定で選ぶと開始時にロックできます"
-            UserDefaults.standard.set(false, forKey: Self.sessionLockActiveKey)
+            Self.setWorkoutSessionLockActive(false)
             return
         }
 
         guard await requestAuthorizationIfNeededForSessionLock() else {
-            UserDefaults.standard.set(false, forKey: Self.sessionLockActiveKey)
+            Self.setWorkoutSessionLockActive(false)
             return
         }
         guard !Task.isCancelled else { return }
 
         let normalized = Self.normalizedSelection(selection)
         Self.apply(selection: normalized, to: managedSettingsStore)
-        UserDefaults.standard.set(true, forKey: Self.sessionLockActiveKey)
+        Self.setWorkoutSessionLockActive(true)
         statusText = "ワークアウト中のブロックを適用しました: \(selectionSummary)"
         Haptics.success()
         #else
@@ -189,10 +194,10 @@ final class ScreenShieldingService: ObservableObject {
     func clearWorkoutSessionLock() {
         #if canImport(FamilyControls) && canImport(ManagedSettings)
         managedSettingsStore.clearAllSettings()
-        UserDefaults.standard.set(false, forKey: Self.sessionLockActiveKey)
+        Self.setWorkoutSessionLockActive(false)
         updateSelectionStatus(prefix: "ワークアウト中のブロックを解除しました。")
         #else
-        UserDefaults.standard.set(false, forKey: Self.sessionLockActiveKey)
+        Self.setWorkoutSessionLockActive(false)
         statusText = "この環境ではアプリブロックを解除できません"
         #endif
     }
@@ -223,11 +228,12 @@ final class ScreenShieldingService: ObservableObject {
         }
     }
 
-    static func applyStoredShielding(isEnabled: Bool) {
+    @discardableResult
+    static func applyStoredShielding(isEnabled: Bool) -> Bool {
         let managedSettingsStore = ManagedSettingsStore(named: ManagedSettingsStore.Name("WorkoutLock"))
         guard isEnabled else {
             managedSettingsStore.clearAllSettings()
-            return
+            return false
         }
 
         let selection = loadSelection()
@@ -238,10 +244,11 @@ final class ScreenShieldingService: ObservableObject {
 
         guard hasSelection else {
             managedSettingsStore.clearAllSettings()
-            return
+            return false
         }
 
         apply(selection: selection, to: managedSettingsStore)
+        return true
     }
 
     private static func loadSelection() -> FamilyActivitySelection {

@@ -23,6 +23,7 @@ struct WorkoutSessionView: View {
     @State private var activeMusicTrack: WorkoutMusicTrack = .sunoSlot01
     @State private var hasStartedMusic = false
     @State private var shareURL: URL?
+    @State private var shareStatusText: String?
     @State private var completedSets = 0
     @State private var setStartRepOffset = 0
     @State private var workoutSessionLockTask: Task<Void, Never>?
@@ -96,6 +97,8 @@ struct WorkoutSessionView: View {
             lastPoseSampleAt = .distantPast
             visibleSampleCount = 0
             analyzedSampleCount = 0
+            shareURL = nil
+            shareStatusText = nil
             trackedJointTotal = 0
             kneeAngleTotal = 0
             kneeAngleSampleCount = 0
@@ -286,19 +289,38 @@ struct WorkoutSessionView: View {
                 .foregroundStyle(.black)
 
                 if !isTutorial, let shareURL {
-                    ShareLink(
-                        item: shareURL,
-                        message: Text("筋トレロックで\(min(camera.frame.repCount, targetReps))回達成！ #筋トレロック"),
-                        preview: SharePreview("筋トレロック \(min(camera.frame.repCount, targetReps))回達成", image: shareURL)
-                    ) {
-                        Label("結果をシェア", systemImage: "square.and.arrow.up")
-                            .font(.system(size: 20, weight: .black, design: .rounded))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .foregroundStyle(.white)
-                            .background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
+                    VStack(spacing: 10) {
+                        ShareLink(
+                            item: shareURL,
+                            message: Text("筋トレロックで\(min(camera.frame.repCount, targetReps))回達成！ #筋トレロック"),
+                            preview: SharePreview("筋トレロック \(min(camera.frame.repCount, targetReps))回達成", image: shareURL)
+                        ) {
+                            Label("結果をシェア", systemImage: "square.and.arrow.up")
+                                .font(.system(size: 20, weight: .black, design: .rounded))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .foregroundStyle(.white)
+                                .background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
+
+                        Button(action: shareToInstagramStories) {
+                            Label("Instagramでシェア", systemImage: "camera")
+                                .font(.system(size: 20, weight: .black, design: .rounded))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .foregroundStyle(.white)
+                                .background(.white.opacity(0.16), in: RoundedRectangle(cornerRadius: 8))
+                        }
+                        .buttonStyle(.plain)
+
+                        if let shareStatusText {
+                            Text(shareStatusText)
+                                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.72))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             } else {
                 Text(isTutorial ? "まずは5回成功させよう" : "終わるまでアプリ制限中")
@@ -367,6 +389,7 @@ struct WorkoutSessionView: View {
         if isTutorial {
             store.applyTutorialCalibration(makeTutorialCalibration(actualReps: actualReps))
         } else if let latest = store.records.first {
+            shareStatusText = nil
             shareURL = WorkoutShareImageRenderer.makeImageURL(
                 record: latest,
                 streakDays: store.streakDays,
@@ -382,6 +405,24 @@ struct WorkoutSessionView: View {
         guard !isTutorial, !didClearWorkoutSessionLock else { return }
         didClearWorkoutSessionLock = true
         shielding.clearWorkoutSessionLock()
+    }
+
+    private func shareToInstagramStories() {
+        shareStatusText = nil
+        guard let latest = store.records.first,
+              let pngData = WorkoutShareImageRenderer.makePNGData(
+                record: latest,
+                streakDays: store.streakDays,
+                totalReps: store.totalReps
+              ) else {
+            shareStatusText = "シェア画像を準備できませんでした。"
+            return
+        }
+
+        WorkoutInstagramShare.shareToStories(pngData: pngData) { success in
+            guard !success else { return }
+            shareStatusText = "Instagramを開けませんでした。通常の共有を使えます。"
+        }
     }
 
     private func appendAutoPoseSample(_ frame: PoseFrame) {
