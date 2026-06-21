@@ -30,18 +30,8 @@ struct ScheduleView: View {
                             Haptics.selection()
                         }
 
-                        Stepper(value: $store.targetReps, in: 3...50) {
-                            HStack {
-                                Text("回数")
-                                Spacer()
-                                Text("\(store.targetReps)回")
-                                    .font(.system(size: 28, weight: .black, design: .rounded))
-                                    .monospacedDigit()
-                            }
-                        }
-                        .onChange(of: store.targetReps) { _, _ in
-                            Haptics.lightTap()
-                        }
+                        SettingsLikeLine(title: "今日", value: "\(store.targetReps)回")
+                        SettingsLikeLine(title: "次", value: store.nextPlanTargetSummary)
                     }
                     .schedulePanel()
 

@@ -55,8 +55,6 @@ final class AppStore: ObservableObject {
         didSet { saveSettings() }
     }
 
-    @Published var planOptions: [TrainingPlan] = []
-
     @Published var selectedPlan: TrainingPlan? {
         didSet { saveSettings() }
     }
@@ -179,9 +177,6 @@ final class AppStore: ObservableObject {
         loadRecords()
         isLoadingPersistedState = false
         UserDefaults.standard.set(appBlockingEnabled, forKey: Self.appBlockingEnabledKey)
-        if planOptions.isEmpty {
-            planOptions = makePlanOptions()
-        }
         normalizeTriggerPreference()
         syncTargetRepsWithPlan()
         resumePendingShieldingIfNeeded()
@@ -301,8 +296,8 @@ final class AppStore: ObservableObject {
     }
 
     var goalProgress: Double {
-        if let selectedPlan {
-            return min(1, Double(currentPlanWeek) / Double(max(1, selectedPlan.durationWeeks)))
+        if let result = currentPlanResult {
+            return min(1, Double(currentPlanWeek) / Double(max(1, result.weeks)))
         }
 
         return min(1, Double(totalReps) / Double(max(1, targetReps * 30)))
@@ -316,29 +311,22 @@ final class AppStore: ObservableObject {
         return max(0, days / 7)
     }
 
-    var plannedTargetReps: Int {
-        guard let selectedPlan else { return targetReps }
-        let ramped = selectedPlan.startReps + (currentPlanWeek * selectedPlan.weeklyIncrease)
-        return min(selectedPlan.endReps, max(selectedPlan.startReps, ramped))
+    var engineTargetRepsToday: Int? {
+        guard planStartedAt != nil, let result = currentPlanResult else { return nil }
+        return result.weekTargetReps(week: currentPlanWeek + 1)
     }
 
     var nextPlanTargetSummary: String {
-        guard let selectedPlan else { return "\(targetReps)回" }
-        let nextWeekTarget = min(
-            selectedPlan.endReps,
-            selectedPlan.startReps + ((currentPlanWeek + 1) * selectedPlan.weeklyIncrease)
-        )
-        return nextWeekTarget == plannedTargetReps ? "上限 \(selectedPlan.endReps)回" : "来週 \(nextWeekTarget)回"
+        guard let result = currentPlanResult else { return "\(targetReps)回" }
+        let next = result.weekTargetReps(week: currentPlanWeek + 2)
+        return next >= result.finalReps ? "上限 \(result.finalReps)回" : "来週 \(next)回"
     }
 
     /// プレフィックス無しの「次の目標回数」。ホームの今日/次チップ用。
     var nextPlanTargetValue: String {
-        guard let selectedPlan else { return "\(targetReps)回" }
-        let nextWeekTarget = min(
-            selectedPlan.endReps,
-            selectedPlan.startReps + ((currentPlanWeek + 1) * selectedPlan.weeklyIncrease)
-        )
-        return nextWeekTarget == plannedTargetReps ? "上限 \(selectedPlan.endReps)回" : "\(nextWeekTarget)回"
+        guard let result = currentPlanResult else { return "\(targetReps)回" }
+        let next = result.weekTargetReps(week: currentPlanWeek + 2)
+        return next >= result.finalReps ? "上限 \(result.finalReps)回" : "\(next)回"
     }
 
     var streakDays: Int {
@@ -394,10 +382,6 @@ final class AppStore: ObservableObject {
         dataConsentAccepted = accepted
     }
 
-    func refreshPlanOptions() {
-        planOptions = makePlanOptions()
-    }
-
     func deferWeeklyWeightCheckIn() {
         lastWeightPromptAt = .now
     }
@@ -426,17 +410,18 @@ final class AppStore: ObservableObject {
         }
     }
 
-    func selectPlan(_ plan: TrainingPlan) {
-        selectedPlan = plan
+    func confirmEnginePlan() {
         planStartedAt = .now
+        syncTargetRepsWithPlan()
     }
 
     func syncTargetRepsWithPlan() {
-        guard selectedPlan != nil else { return }
         if planStartedAt == nil {
             planStartedAt = records.last?.completedAt ?? .now
         }
-        targetReps = plannedTargetReps
+        if let reps = engineTargetRepsToday {
+            targetReps = reps
+        }
     }
 
     func upsertTriggerLocation(_ location: HomeLocation) {
@@ -469,6 +454,10 @@ final class AppStore: ObservableObject {
     }
 
     func completeOnboarding() {
+        if planStartedAt == nil {
+            planStartedAt = .now
+        }
+        syncTargetRepsWithPlan()
         onboardingCompleted = true
     }
 
@@ -773,16 +762,7 @@ final class AppStore: ObservableObject {
     }
 
     private func refreshSelectedPlanFromProfile() {
-        let selectedPlanID = selectedPlan?.id
-        planOptions = makePlanOptions()
-
-        guard selectedPlan != nil else { return }
-
-        if let selectedPlanID, let matchingPlan = planOptions.first(where: { $0.id == selectedPlanID }) {
-            selectedPlan = matchingPlan
-        } else {
-            selectedPlan = planOptions.first
-        }
+        selectedPlan = nil
     }
 
     static func dayKey(for date: Date) -> String {
@@ -799,17 +779,6 @@ final class AppStore: ObservableObject {
         }
     }
 
-    private func makePlanOptions() -> [TrainingPlan] {
-        WorkoutPlanEstimator.makePlans(
-            gender: userGender,
-            heightCm: heightCm,
-            currentWeightKg: currentWeightKg,
-            goalWeightKg: goalWeightKg,
-            goalDurationMonths: goalDurationMonths,
-            calibration: tutorialCalibration,
-            recentRecords: records
-        )
-    }
 }
 
 private enum AppDurableBackup {

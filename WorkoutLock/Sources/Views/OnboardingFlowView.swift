@@ -92,7 +92,7 @@ struct OnboardingFlowView: View {
             WorkoutSessionView(
                 exercise: .squat,
                 targetReps: 5,
-                tutorialPlan: store.selectedPlan
+                tutorialPlan: nil
             ) {
                 store.markTutorialCompleted()
                 showTutorial = false
@@ -349,7 +349,7 @@ struct OnboardingFlowView: View {
             )
 
             VStack(alignment: .leading, spacing: 12) {
-                ConsentLine(text: "体重や目標体重から3つのプランを作る")
+                ConsentLine(text: "体重や目標体重からプランを作る")
                 ConsentLine(text: "Apple Visionの骨格ログを端末に保存する")
                 ConsentLine(text: "ワークアウト完了時のカメラ映像をログに残す")
                 ConsentLine(text: "同意しなくても、手動設定で続けられる")
@@ -544,9 +544,8 @@ struct OnboardingFlowView: View {
         isGeneratingPlan = true
 
         Task {
-            try? await Task.sleep(for: .milliseconds(1100))
+            try? await Task.sleep(for: .milliseconds(350))
             await MainActor.run {
-                store.refreshPlanOptions()
                 isGeneratingPlan = false
                 Haptics.success()
                 advance(to: .plan)
@@ -557,21 +556,33 @@ struct OnboardingFlowView: View {
     private var planStep: some View {
         VStack(alignment: .leading, spacing: 22) {
             OnboardingTitle(
-                title: "3つのプラン",
+                title: "このプランで進める",
                 subtitle: ""
             )
 
-            ForEach(store.planOptions) { plan in
-                Button {
-                    Haptics.mediumTap()
-                    store.selectPlan(plan)
-                    store.appBlockingEnabled = true
-                    advance(to: .commitmentBlock)
-                } label: {
-                    PlanOptionCard(plan: plan, daysPerWeek: store.trainingDaysPerWeek)
-                }
-                .buttonStyle(.plain)
+            if let result = store.currentPlanResult {
+                EnginePlanConfirmationCard(
+                    result: result,
+                    daysPerWeek: store.trainingDaysPerWeek,
+                    durationMonths: store.goalDurationMonths
+                )
+            } else {
+                Text("プランを作成できませんでした")
+                    .font(.headline.weight(.black))
+                    .foregroundStyle(WorkoutInk.primary)
+                    .onboardingPanel()
             }
+
+            Button {
+                Haptics.mediumTap()
+                store.confirmEnginePlan()
+                store.appBlockingEnabled = true
+                advance(to: .commitmentBlock)
+            } label: {
+                FullWidthPrimaryLabel(title: "このプランで始める", systemImage: "checkmark")
+            }
+            .buttonStyle(.plain)
+            .disabled(store.currentPlanResult == nil)
         }
     }
 
@@ -987,6 +998,13 @@ private struct PlanEstimateSummary: View {
 
                 Spacer()
 
+                Text("\(durationMonths)ヶ月")
+                    .font(.caption.weight(.black))
+                    .foregroundStyle(OnboardingPalette.ink)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(.white.opacity(0.28), in: Capsule())
+
                 Text(result.mode.title)
                     .font(.caption.weight(.black))
                     .foregroundStyle(OnboardingPalette.ink)
@@ -996,10 +1014,10 @@ private struct PlanEstimateSummary: View {
             }
 
             LazyVGrid(columns: columns, spacing: 10) {
+                PlanEstimateChip(value: "\(result.weekTargetReps(week: 1))", unit: "回", label: "初週")
+                PlanEstimateChip(value: "\(result.finalReps)", unit: "回", label: "最終")
                 PlanEstimateChip(value: "\(daysPerWeek)", unit: "回", label: "週")
-                PlanEstimateChip(value: "\(result.repsPerTrainingDay)", unit: "回", label: "1回")
                 PlanEstimateChip(value: result.dietLevel.title, unit: "", label: "食事")
-                PlanEstimateChip(value: "\(durationMonths)", unit: "ヶ月", label: "期間")
             }
         }
         .padding(.top, 2)
@@ -1035,6 +1053,73 @@ private struct PlanEstimateChip: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .liquidGlass(cornerRadius: 16)
+    }
+}
+
+private struct EnginePlanConfirmationCard: View {
+    let result: PlanResult
+    let daysPerWeek: Int
+    let durationMonths: Int
+
+    private var durationLabel: String {
+        "\(durationMonths)ヶ月 / \(result.weeks)週"
+    }
+
+    private var firstWeekReps: Int {
+        result.weekTargetReps(week: 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("筋トレプラン")
+                    .font(.title2.weight(.black))
+                Text(durationLabel)
+                    .font(.subheadline.monospacedDigit().weight(.black))
+                    .foregroundStyle(WorkoutInk.secondary)
+            }
+
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("初週")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(WorkoutInk.secondary)
+                    Text("\(firstWeekReps)回")
+                        .font(.system(size: 34, weight: .black, design: .rounded))
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.right")
+                    .font(.headline.weight(.black))
+                    .padding(.top, 28)
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 5) {
+                    Text("最終")
+                        .font(.caption.weight(.black))
+                        .foregroundStyle(WorkoutInk.secondary)
+                    Text("\(result.finalReps)回")
+                        .font(.system(size: 34, weight: .black, design: .rounded))
+                }
+            }
+            .monospacedDigit()
+
+            HStack(spacing: 10) {
+                PlanMetric(value: "\(daysPerWeek)回", label: "週")
+                PlanMetric(value: result.dietLevel.title, label: "食事")
+                PlanMetric(value: result.mode.title, label: "モード")
+            }
+        }
+        .foregroundStyle(WorkoutInk.primary)
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .liquidGlass(cornerRadius: 22)
+        .overlay {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(WorkoutInk.primary.opacity(0.36), lineWidth: 1.5)
+        }
     }
 }
 
