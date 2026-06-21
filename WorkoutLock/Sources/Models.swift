@@ -533,7 +533,7 @@ struct TrainingPlan: Codable, Identifiable, Hashable {
     }
 
     var summary: String {
-        "\(durationWeeks)週間 / \(startReps)回から\(endReps)回へ / 毎週+\(weeklyIncrease)回"
+        "\(durationWeeks)週間 / \(startReps)回から\(endReps)回へ"
     }
 }
 

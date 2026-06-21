@@ -176,9 +176,9 @@ enum WorkoutPlanEstimator {
         let rationale: String
 
         if let calibration {
-            rationale = "目標期間から必要な最終回数を逆算し、5回チュートリアルの速度\(calibration.secondsPerRep.formatted(.number.precision(.fractionLength(1))))秒/回と検出安定度\(calibration.qualityScore)%で初期回数を補正しました。"
+            rationale = "目標期間と5回チュートリアルの速度\(calibration.secondsPerRep.formatted(.number.precision(.fractionLength(1))))秒/回、検出安定度\(calibration.qualityScore)%から回数を決めました。"
         } else {
-            rationale = "身長・体重・性別・目標体重・目標期間から、最終回数と週ごとの増加幅を逆算しています。"
+            rationale = "身長・体重・性別・目標体重・目標期間から回数を決めました。"
         }
 
         return TrainingPlan(

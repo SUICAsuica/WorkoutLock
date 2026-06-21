@@ -1111,6 +1111,10 @@ private struct EnginePlanConfirmationCard: View {
                 PlanMetric(value: result.dietLevel.title, label: "食事")
                 PlanMetric(value: result.mode.title, label: "モード")
             }
+
+            Text("期間中で徐々に増加。4週ごとに軽め週。")
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(WorkoutInk.secondary)
         }
         .foregroundStyle(WorkoutInk.primary)
         .padding(18)
@@ -1438,91 +1442,6 @@ private struct WheelNumberPickerRow: View {
         }
 
         return number.formatted(.number.precision(.fractionLength(fractionDigits)))
-    }
-}
-
-private struct PlanOptionCard: View {
-    let plan: TrainingPlan
-    let daysPerWeek: Int
-
-    private var isRecommended: Bool {
-        plan.id == "standard"
-    }
-
-    private var durationLabel: String {
-        plan.durationWeeks % 4 == 0 ? "\(plan.durationMonths)ヶ月" : "\(plan.durationWeeks)週"
-    }
-
-    private var paceLabel: String {
-        switch plan.id {
-        case "gentle":
-            return "続けやすい"
-        case "hard":
-            return "強め"
-        default:
-            return "標準"
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(plan.title)
-                        .font(.title2.weight(.black))
-                        .foregroundStyle(WorkoutInk.primary)
-                    Text(durationLabel)
-                        .font(.subheadline.monospacedDigit().weight(.black))
-                        .foregroundStyle(WorkoutInk.secondary)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 6) {
-                    if isRecommended {
-                        Text("おすすめ")
-                            .font(.caption.weight(.black))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(.black.opacity(0.86), in: Capsule())
-                    }
-
-                    Text(paceLabel)
-                        .font(.caption.weight(.black))
-                        .foregroundStyle(WorkoutInk.primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(.black.opacity(0.07), in: Capsule())
-                }
-            }
-
-            HStack(alignment: .lastTextBaseline, spacing: 8) {
-                Text("初日 \(plan.startReps)回")
-                Image(systemName: "arrow.right")
-                    .font(.headline.weight(.black))
-                Text("最終 \(plan.endReps)回")
-            }
-            .font(.system(size: 27, weight: .black, design: .rounded))
-            .foregroundStyle(WorkoutInk.primary)
-            .monospacedDigit()
-            .lineLimit(1)
-            .minimumScaleFactor(0.68)
-
-            HStack(spacing: 10) {
-                PlanMetric(value: "\(plan.dailySessions)回", label: "1日")
-                PlanMetric(value: "\(daysPerWeek)回", label: "週")
-                PlanMetric(value: "+\(plan.weeklyIncrease)回", label: "毎週")
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .liquidGlass(cornerRadius: 22)
-        .overlay {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(isRecommended ? WorkoutInk.primary.opacity(0.42) : Color.black.opacity(0.14), lineWidth: isRecommended ? 1.5 : 1)
-        }
-        .contentShape(Rectangle())
     }
 }
 

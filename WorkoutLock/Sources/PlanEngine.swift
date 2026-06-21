@@ -89,7 +89,7 @@ enum FitnessLevel: String, Codable, CaseIterable, Identifiable {
     var startRatio: Double {
         switch self {
         case .beginner:
-            return 0.40
+            return 0.25
         case .normal:
             return 0.30
         case .active:
@@ -238,16 +238,15 @@ struct PlanResult {
     let dietLevel: DietLevel
     let foodDeficit: Double
     let weeks: Int
+    let ramp: [Double]
     let startReps: Int
     let finalReps: Int
-    let weeklyIncrease: Int
 
     func weekTargetReps(week: Int) -> Int {
-        let percents = PlanEngine.rampPercents(weeks: weeks)
-        guard !percents.isEmpty else { return finalReps }
+        guard !ramp.isEmpty else { return finalReps }
 
-        let index = min(percents.count - 1, max(0, week - 1))
-        let reps = Double(finalReps) * percents[index]
+        let index = min(ramp.count - 1, max(0, week - 1))
+        let reps = Double(finalReps) * ramp[index]
         return max(1, Int(reps.rounded()))
     }
 }
@@ -310,8 +309,8 @@ enum PlanEngine {
 
         let weeks = min(52, max(4, Int((Double(input.days) / 7).rounded())))
         let finalReps = repsPerTrainingDay
-        let startReps = max(8, Int((Double(finalReps) * input.fitnessLevel.startRatio).rounded()))
-        let weeklyIncrease = max(1, Int((Double(max(1, finalReps - startReps)) / Double(max(1, weeks))).rounded(.up)))
+        let ramp = rampPercents(weeks: weeks, startFraction: input.fitnessLevel.startRatio)
+        let startReps = max(1, Int((Double(finalReps) * ramp.first!).rounded()))
         let mode: PlanMode
         if currentBMI < 18.5 {
             mode = .caution
@@ -338,30 +337,27 @@ enum PlanEngine {
             dietLevel: dietLevel,
             foodDeficit: foodDeficit,
             weeks: weeks,
+            ramp: ramp,
             startReps: startReps,
-            finalReps: finalReps,
-            weeklyIncrease: weeklyIncrease
+            finalReps: finalReps
         )
     }
 
-    static func rampPercents(weeks: Int) -> [Double] {
+    static func rampPercents(weeks: Int, startFraction: Double) -> [Double] {
         guard weeks > 0 else { return [] }
+        let start = min(max(startFraction, 0.2), 0.9)
+        if weeks == 1 { return [1.0] }
 
         var percents: [Double] = []
         percents.reserveCapacity(weeks)
 
-        for weekIndex in 0..<weeks {
-            let block = weekIndex / 4
-            let position = weekIndex % 4
-            let percent: Double
-
-            if position == 3 {
-                percent = 0.35 + Double(block) * 0.10
-            } else {
-                percent = 0.40 + Double(block) * 0.15 + Double(position) * 0.05
+        for index in 0..<weeks {
+            var percent = start + (1.0 - start) * (Double(index) / Double(weeks - 1))
+            if index % 4 == 3 && index != weeks - 1 {
+                percent *= 0.82
             }
 
-            percents.append(clamp(percent, lower: 0.10, upper: 1.0))
+            percents.append(min(1.0, max(0.1, percent)))
         }
 
         percents[weeks - 1] = 1.0
