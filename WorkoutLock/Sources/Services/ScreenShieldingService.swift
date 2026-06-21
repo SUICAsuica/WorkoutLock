@@ -11,6 +11,33 @@ import ManagedSettings
 final class ScreenShieldingService: ObservableObject {
     @Published private(set) var statusText = "未接続"
 
+    private static let sessionLockActiveKey = "workout-lock.session-lock-active"
+
+    static var isWorkoutSessionLockActive: Bool {
+        UserDefaults.standard.bool(forKey: sessionLockActiveKey)
+    }
+
+    static func reapplyWorkoutSessionLockIfActive() {
+        guard isWorkoutSessionLockActive else { return }
+
+        #if canImport(FamilyControls) && canImport(ManagedSettings)
+        let managedSettingsStore = ManagedSettingsStore(named: ManagedSettingsStore.Name("WorkoutLock"))
+        let selection = loadSelection()
+        let hasSelection =
+            !selection.applicationTokens.isEmpty ||
+            !selection.categoryTokens.isEmpty ||
+            !selection.webDomainTokens.isEmpty
+
+        guard hasSelection else {
+            managedSettingsStore.clearAllSettings()
+            UserDefaults.standard.set(false, forKey: sessionLockActiveKey)
+            return
+        }
+
+        apply(selection: selection, to: managedSettingsStore)
+        #endif
+    }
+
     #if canImport(FamilyControls) && canImport(ManagedSettings)
     @Published var selection: FamilyActivitySelection = ScreenShieldingService.loadSelection() {
         didSet {
@@ -139,16 +166,19 @@ final class ScreenShieldingService: ObservableObject {
         #if canImport(FamilyControls) && canImport(ManagedSettings)
         guard hasConfiguredSelection else {
             statusText = "ブロック対象が未選択です。設定で選ぶと開始時にロックできます"
+            UserDefaults.standard.set(false, forKey: Self.sessionLockActiveKey)
             return
         }
 
         guard await requestAuthorizationIfNeededForSessionLock() else {
+            UserDefaults.standard.set(false, forKey: Self.sessionLockActiveKey)
             return
         }
         guard !Task.isCancelled else { return }
 
         let normalized = Self.normalizedSelection(selection)
         Self.apply(selection: normalized, to: managedSettingsStore)
+        UserDefaults.standard.set(true, forKey: Self.sessionLockActiveKey)
         statusText = "ワークアウト中のブロックを適用しました: \(selectionSummary)"
         Haptics.success()
         #else
@@ -159,8 +189,10 @@ final class ScreenShieldingService: ObservableObject {
     func clearWorkoutSessionLock() {
         #if canImport(FamilyControls) && canImport(ManagedSettings)
         managedSettingsStore.clearAllSettings()
+        UserDefaults.standard.set(false, forKey: Self.sessionLockActiveKey)
         updateSelectionStatus(prefix: "ワークアウト中のブロックを解除しました。")
         #else
+        UserDefaults.standard.set(false, forKey: Self.sessionLockActiveKey)
         statusText = "この環境ではアプリブロックを解除できません"
         #endif
     }

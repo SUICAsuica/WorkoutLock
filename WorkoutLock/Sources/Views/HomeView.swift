@@ -58,10 +58,12 @@ struct HomeView: View {
         }
         .onAppear {
             consumeWorkoutLaunchRequest()
+            resumeWorkoutSessionLockIfNeeded()
             showWeightCheckInIfDue()
         }
         .onReceive(NotificationCenter.default.publisher(for: .workoutStartRequested)) { _ in
             consumeWorkoutLaunchRequest()
+            resumeWorkoutSessionLockIfNeeded()
         }
     }
 
@@ -155,6 +157,12 @@ struct HomeView: View {
 
     private func consumeWorkoutLaunchRequest() {
         guard WorkoutLaunchRequest.consumePending() else { return }
+        activeSheet = nil
+        isShowingWorkout = true
+    }
+
+    private func resumeWorkoutSessionLockIfNeeded() {
+        guard ScreenShieldingService.isWorkoutSessionLockActive, !isShowingWorkout else { return }
         activeSheet = nil
         isShowingWorkout = true
     }

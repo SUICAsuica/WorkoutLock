@@ -16,6 +16,7 @@ struct WorkoutLockApp: App {
                 .onAppear {
                     // 場所トリガーの自動通知/自動開始は廃止。残っている予約を一掃する。
                     locationTrigger.cancelAllArrivalTriggers()
+                    ScreenShieldingService.reapplyWorkoutSessionLockIfActive()
                     WorkoutLaunchRequest.consumePending()
                     store.resumePendingShieldingIfNeeded()
                 }

@@ -51,11 +51,13 @@ struct AppView: View {
         }
         .onAppear {
             store.syncTargetRepsWithPlan()
+            resumeWorkoutSessionLockIfNeeded()
             store.resumePendingShieldingIfNeeded()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 store.syncTargetRepsWithPlan()
+                resumeWorkoutSessionLockIfNeeded()
                 store.applyDueShieldingIfNeeded()
             }
         }
@@ -99,6 +101,13 @@ struct AppView: View {
             .tag(3)
         }
         .tint(WorkoutTheme.accent)
+    }
+
+    private func resumeWorkoutSessionLockIfNeeded() {
+        ScreenShieldingService.reapplyWorkoutSessionLockIfActive()
+        guard ScreenShieldingService.isWorkoutSessionLockActive else { return }
+        selectedTab = 0
+        NotificationCenter.default.post(name: .workoutStartRequested, object: nil)
     }
 }
 

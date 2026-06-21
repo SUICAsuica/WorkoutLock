@@ -120,7 +120,8 @@ struct WorkoutSessionView: View {
             }
         }
         .onDisappear {
-            clearWorkoutSessionLockIfNeeded()
+            workoutSessionLockTask?.cancel()
+            workoutSessionLockTask = nil
             camera.stop()
             musicPlayer.stop()
             WorkoutLiveActivityService.end()
