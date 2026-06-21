@@ -18,7 +18,7 @@ private enum OnboardingStep: Int, CaseIterable {
 }
 
 private enum OnboardingPalette {
-    static let ink = Color(red: 0.23, green: 0.11, blue: 0.02)
+    static let ink = WorkoutInk.primary
 }
 
 private enum GoalDurationOption: Int, CaseIterable, Identifiable {
@@ -55,7 +55,7 @@ struct OnboardingFlowView: View {
 
     var body: some View {
         ZStack {
-            WorkoutTheme.orange.ignoresSafeArea()
+            WorkoutTheme.background.ignoresSafeArea()
             GlassBackdrop()
 
             ScrollView(showsIndicators: false) {
@@ -176,7 +176,7 @@ struct OnboardingFlowView: View {
             HStack(spacing: 5) {
                 ForEach(0..<stepCount, id: \.self) { index in
                     Capsule()
-                        .fill(index <= stepIndex ? Color.black.opacity(0.82) : Color.white.opacity(0.32))
+                        .fill(index <= stepIndex ? WorkoutTheme.accent : WorkoutInk.secondary.opacity(0.35))
                         .frame(height: 5)
                 }
             }
@@ -235,7 +235,7 @@ struct OnboardingFlowView: View {
                             .font(.title3.weight(.black))
                         Text("iPhoneを少し離して置いて、まずは5回だけ。")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.black.opacity(0.62))
+                            .foregroundStyle(WorkoutInk.secondary)
                     }
                 }
 
@@ -288,7 +288,7 @@ struct OnboardingFlowView: View {
             if let signInErrorMessage {
                 Text(signInErrorMessage)
                     .font(.caption.weight(.black))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.black.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
@@ -529,7 +529,7 @@ struct OnboardingFlowView: View {
             if isGeneratingPlan {
                 HStack(spacing: 12) {
                     ProgressView()
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
                     Text("継続率と負荷を予測中")
                         .font(.headline.weight(.black))
                 }
@@ -595,7 +595,7 @@ struct OnboardingFlowView: View {
                             .font(.title2.weight(.black))
                         Text(store.appBlockingEnabled ? "オン" : "オフ")
                             .font(.headline.weight(.black))
-                            .foregroundStyle(store.appBlockingEnabled ? WorkoutInk.primary : Color.black.opacity(0.62))
+                            .foregroundStyle(store.appBlockingEnabled ? WorkoutInk.primary : WorkoutInk.secondary)
                     }
 
                     Spacer()
@@ -634,7 +634,7 @@ struct OnboardingFlowView: View {
 
                         Text("SNS・動画・ブラウザなど、逃げ道になるアプリをまとめて選べます。")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.black.opacity(0.62))
+                            .foregroundStyle(WorkoutInk.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
@@ -659,7 +659,7 @@ struct OnboardingFlowView: View {
                         Spacer()
                         Image(systemName: "arrow.up.forward")
                             .font(.caption.weight(.black))
-                            .foregroundStyle(Color.black.opacity(0.62))
+                            .foregroundStyle(WorkoutInk.secondary)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 14)
@@ -671,7 +671,7 @@ struct OnboardingFlowView: View {
 
                 Text(shielding.statusText)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
             }
             .onboardingPanel()
 
@@ -719,7 +719,7 @@ struct OnboardingFlowView: View {
 
                 Text(store.workoutTimeBand.subtitle)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
 
                 Stepper("ここに着いてから \(locationDelayMinutes)分後", value: $locationDelayMinutes, in: 10...60, step: 5)
                     .font(.headline.weight(.black))
@@ -754,7 +754,7 @@ struct OnboardingFlowView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.bordered)
-                    .tint(.black)
+                    .tint(WorkoutTheme.accent)
 
                     Button {
                         Haptics.selection()
@@ -771,13 +771,13 @@ struct OnboardingFlowView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.bordered)
-                    .tint(.black)
+                    .tint(WorkoutTheme.accent)
                 }
 
                 if store.triggerLocations.isEmpty {
                     Text(locationTrigger.statusText)
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.black.opacity(0.62))
+                        .foregroundStyle(WorkoutInk.secondary)
                 } else {
                     ForEach(store.triggerLocations) { location in
                         HStack {
@@ -786,7 +786,7 @@ struct OnboardingFlowView: View {
                                     .font(.subheadline.weight(.black))
                                 Text(location.shortLabel)
                                     .font(.caption.monospacedDigit().weight(.bold))
-                                    .foregroundStyle(Color.black.opacity(0.62))
+                                    .foregroundStyle(WorkoutInk.secondary)
                             }
                             Spacer()
                             Button {
@@ -805,7 +805,7 @@ struct OnboardingFlowView: View {
 
                 Text("その日1回やったら、その日はもう発動しません。")
                     .font(.caption.weight(.black))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
             }
             .onboardingPanel()
         }
@@ -837,7 +837,7 @@ struct OnboardingFlowView: View {
 
                 Text(shielding.statusText)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
             }
             .onboardingPanel()
 
@@ -929,7 +929,7 @@ private struct FullWidthSecondaryLabel: View {
         .frame(maxWidth: .infinity)
         .frame(minHeight: minHeight)
         .padding(.horizontal, 16)
-        .foregroundStyle(Color(red: 0.23, green: 0.11, blue: 0.02))
+        .foregroundStyle(WorkoutInk.primary)
         .liquidGlass(cornerRadius: 20)
         .contentShape(Rectangle())
     }
@@ -949,7 +949,7 @@ private struct GoalDurationOptionButton: View {
 
                 Text(option.badge ?? " ")
                     .font(.caption2.weight(.black))
-                    .foregroundStyle(isSelected ? .white.opacity(0.78) : Color.black.opacity(0.62))
+                    .foregroundStyle(isSelected ? .white.opacity(0.78) : WorkoutInk.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -1015,7 +1015,7 @@ private struct PlanEstimateChip: View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label)
                 .font(.caption.weight(.black))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(value)
@@ -1066,7 +1066,7 @@ private struct LocationMapPickerView: View {
 
                 Image(systemName: "plus")
                     .font(.system(size: 28, weight: .black))
-                    .foregroundStyle(WorkoutTheme.orange)
+                    .foregroundStyle(WorkoutTheme.accent)
                     .shadow(radius: 2)
 
                 VStack {
@@ -1111,7 +1111,7 @@ private struct LocationMapPickerView: View {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
                     .font(.headline.weight(.black))
-                    .foregroundStyle(.black.opacity(0.5))
+                    .foregroundStyle(WorkoutInk.secondary)
 
                 TextField("場所を検索", text: $searchText)
                     .textInputAutocapitalization(.never)
@@ -1123,7 +1123,7 @@ private struct LocationMapPickerView: View {
 
                 if isSearching {
                     ProgressView()
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
                 } else if !searchText.isEmpty {
                     Button {
                         searchText = ""
@@ -1131,15 +1131,16 @@ private struct LocationMapPickerView: View {
                         selectedName = nil
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.black.opacity(0.45))
+                            .foregroundStyle(WorkoutInk.secondary)
                     }
                     .buttonStyle(.plain)
                 }
             }
+            .foregroundStyle(WorkoutInk.primary)
             .font(.headline.weight(.bold))
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(.white, in: RoundedRectangle(cornerRadius: 8))
+            .background(WorkoutTheme.background, in: RoundedRectangle(cornerRadius: 8))
 
             if !searchResults.isEmpty {
                 VStack(spacing: 0) {
@@ -1153,7 +1154,7 @@ private struct LocationMapPickerView: View {
                                     .foregroundStyle(WorkoutInk.primary)
                                 Text(item.placemark.title ?? "")
                                     .font(.caption.weight(.bold))
-                                    .foregroundStyle(Color.black.opacity(0.62))
+                                    .foregroundStyle(WorkoutInk.secondary)
                                     .lineLimit(1)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1168,7 +1169,7 @@ private struct LocationMapPickerView: View {
                         }
                     }
                 }
-                .background(.white, in: RoundedRectangle(cornerRadius: 8))
+                .background(WorkoutTheme.background, in: RoundedRectangle(cornerRadius: 8))
             }
         }
     }
@@ -1223,13 +1224,13 @@ private struct OnboardingTitle: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.system(size: 34, weight: .semibold, design: .rounded))
-                .foregroundStyle(Color(red: 0.23, green: 0.11, blue: 0.02))
+                .foregroundStyle(WorkoutInk.primary)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
             if !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1272,7 +1273,7 @@ private struct SettingsLineLike: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
             Spacer()
             Text(value)
                 .fontWeight(.black)
@@ -1324,7 +1325,7 @@ private struct WheelNumberPickerRow: View {
                     .monospacedDigit()
                 Text(suffix)
                     .font(.headline.weight(.black))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
             }
 
             Picker(title, selection: selection) {
@@ -1387,7 +1388,7 @@ private struct PlanOptionCard: View {
                         .foregroundStyle(WorkoutInk.primary)
                     Text(durationLabel)
                         .font(.subheadline.monospacedDigit().weight(.black))
-                        .foregroundStyle(Color.black.opacity(0.62))
+                        .foregroundStyle(WorkoutInk.secondary)
                 }
 
                 Spacer()
@@ -1448,7 +1449,7 @@ private struct PlanMetric: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(label)
                 .font(.caption.weight(.black))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
             Text(value)
                 .font(.headline.monospacedDigit().weight(.black))
                 .foregroundStyle(WorkoutInk.primary)
@@ -1471,17 +1472,17 @@ private extension View {
     }
 }
 
-/// オレンジ背景にぼかした色ブロブを置き、すりガラスが映える下地を作る。
+/// 適応背景にぼかした暖色ブロブを置き、すりガラスが映える下地を作る。
 struct GlassBackdrop: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color(red: 1.0, green: 0.48, blue: 0.10))
+                .fill(WorkoutTheme.adaptive(light: "#F5A15F", dark: "#6E351E").opacity(0.72))
                 .frame(width: 320, height: 320)
                 .blur(radius: 80)
                 .offset(x: -120, y: -260)
             Circle()
-                .fill(Color(red: 1.0, green: 0.85, blue: 0.55))
+                .fill(WorkoutTheme.adaptive(light: "#FFD7A8", dark: "#3B251B").opacity(0.62))
                 .frame(width: 300, height: 300)
                 .blur(radius: 90)
                 .offset(x: 130, y: 280)

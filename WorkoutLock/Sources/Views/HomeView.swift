@@ -22,7 +22,7 @@ struct HomeView: View {
 
     var body: some View {
         ZStack {
-            WorkoutTheme.orange.ignoresSafeArea()
+            WorkoutTheme.background.ignoresSafeArea()
             GlassBackdrop()
 
             ScrollView(showsIndicators: false) {
@@ -108,7 +108,7 @@ struct HomeView: View {
                     .foregroundStyle(WorkoutInk.primary)
                 Text(store.todayRecordCount > 1 ? "今日 \(store.todayReps)回 / \(store.todayRecordCount)セット" : "今日 \(store.todayReps)回 完了")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
             } else {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
                     Text("\(store.targetReps)")
@@ -117,7 +117,7 @@ struct HomeView: View {
                         .foregroundStyle(WorkoutInk.primary)
                     Text("回")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.black.opacity(0.62))
+                        .foregroundStyle(WorkoutInk.secondary)
                         .padding(.bottom, 12)
                 }
                 todayNextStrip
@@ -134,7 +134,7 @@ struct HomeView: View {
             TodayNextChip(title: "今日", value: "\(store.targetReps)回", emphasized: true)
             Image(systemName: "arrow.right")
                 .font(.system(size: 15, weight: .black))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
             TodayNextChip(title: "次", value: store.nextPlanTargetValue, emphasized: false)
         }
     }
@@ -182,7 +182,7 @@ struct HomeView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "checkmark.circle")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(WorkoutTheme.deepOrange)
+                            .foregroundStyle(WorkoutTheme.deepAccent)
                         Text(rule)
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(WorkoutInk.primary)
@@ -205,13 +205,13 @@ struct HomeView: View {
                 Spacer()
                 Text("\(store.totalReps)回")
                     .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
             }
 
             if store.records.isEmpty {
                 Text("最初の1セットで記録が残ります")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 6)
             } else {
@@ -245,7 +245,7 @@ private struct StatChip: View {
                 .minimumScaleFactor(0.6)
             Text(unit)
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -264,11 +264,11 @@ private struct TodayNextChip: View {
         VStack(spacing: 2) {
             Text(title)
                 .font(.caption.weight(.black))
-                .foregroundStyle(emphasized ? .white.opacity(0.9) : Color.black.opacity(0.62))
+                .foregroundStyle(emphasized ? .white.opacity(0.9) : WorkoutInk.secondary)
             Text(value)
                 .font(.system(size: 20, weight: .black, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(emphasized ? .white : .black)
+                .foregroundStyle(emphasized ? .white : WorkoutInk.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -276,7 +276,7 @@ private struct TodayNextChip: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(
-            emphasized ? AnyShapeStyle(.black) : AnyShapeStyle(.white.opacity(0.5)),
+            emphasized ? AnyShapeStyle(.black) : AnyShapeStyle(WorkoutTheme.background.opacity(0.62)),
             in: RoundedRectangle(cornerRadius: 8)
         )
     }
@@ -297,7 +297,7 @@ private struct WeightCheckInSheet: View {
                         .font(.system(size: 34, weight: .black, design: .rounded))
                     Text("入力すると、今日以降の回数ペースを自動で調整します。")
                         .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Color.black.opacity(0.62))
+                        .foregroundStyle(WorkoutInk.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 16) {
@@ -313,9 +313,9 @@ private struct WeightCheckInSheet: View {
                     Stepper(value: $weightKg, in: 35...160, step: 0.5) {
                         Text("0.5kgずつ調整")
                             .font(.headline.weight(.bold))
-                            .foregroundStyle(Color.black.opacity(0.62))
+                            .foregroundStyle(WorkoutInk.secondary)
                     }
-                    .tint(.black)
+                    .tint(WorkoutTheme.accent)
 
                     HStack {
                         Text("いまの目標")
@@ -343,7 +343,7 @@ private struct WeightCheckInSheet: View {
                         .padding(.vertical, 16)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(.black)
+                .tint(WorkoutTheme.accent)
 
                 Button {
                     didResolve = true
@@ -357,10 +357,10 @@ private struct WeightCheckInSheet: View {
                         .padding(.vertical, 12)
                 }
                 .buttonStyle(.bordered)
-                .tint(.black)
+                .tint(WorkoutTheme.accent)
             }
             .padding(24)
-            .background(WorkoutTheme.orange.ignoresSafeArea())
+            .background(WorkoutTheme.background.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .onAppear {
                 guard !didLoadInitialWeight else { return }
@@ -389,7 +389,7 @@ private struct MetricHeader: View {
                 .lineLimit(1)
             Text(label)
                 .font(.subheadline.weight(.heavy))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -504,7 +504,7 @@ struct WorkoutBuddyView: View {
 
             if size == .hero {
                 let glowWidth = max(2, Int((CGFloat(10) * min(max(progress, 0.08), 1)).rounded()))
-                px(3, 15, glowWidth, 1, WorkoutTheme.orange.opacity(0.7))
+                px(3, 15, glowWidth, 1, WorkoutTheme.accent.opacity(0.7))
             }
         }
         .aspectRatio(1, contentMode: .fit)
@@ -547,10 +547,10 @@ private struct WorkoutSnapshotCard: View {
 
                 Text("\(Int(record.duration))秒")
                     .font(.headline.monospacedDigit().weight(.black))
-                    .foregroundStyle(WorkoutInk.primary)
+                    .foregroundStyle(WorkoutTheme.accentInk)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(WorkoutTheme.orange, in: Capsule())
+                    .background(WorkoutTheme.accent, in: Capsule())
 
                 Spacer(minLength: 0)
             }
@@ -602,14 +602,14 @@ private struct WorkoutRecordRow: View {
                     .foregroundStyle(WorkoutInk.primary)
                 Text(record.completedAt.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption)
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
             }
 
             Spacer()
 
             Text("\(Int(record.duration))秒")
                 .font(.caption.monospacedDigit().weight(.bold))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
         }
     }
 }
@@ -621,7 +621,7 @@ struct ProgressBoardView: View {
 
     var body: some View {
         ZStack {
-            WorkoutTheme.orange.ignoresSafeArea()
+            WorkoutTheme.background.ignoresSafeArea()
             GlassBackdrop()
 
             ScrollView(showsIndicators: false) {
@@ -661,7 +661,7 @@ struct ProgressBoardView: View {
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
                             Text("完了すると自動で残ります")
                                 .font(.caption.weight(.medium))
-                                .foregroundStyle(Color.black.opacity(0.62))
+                                .foregroundStyle(WorkoutInk.secondary)
                         }
                         .frame(maxWidth: .infinity)
                         .frame(height: 240)
@@ -752,14 +752,14 @@ private struct WeeklyBarChart: View {
                     VStack(spacing: 8) {
                         Text("\(bar.reps)")
                             .font(.caption2.monospacedDigit().weight(.bold))
-                            .foregroundStyle(bar.reps > 0 ? WorkoutInk.primary : Color.black.opacity(0.62))
+                            .foregroundStyle(bar.reps > 0 ? WorkoutInk.primary : WorkoutInk.secondary)
 
                         GeometryReader { proxy in
                             let height = max(4, proxy.size.height * (Double(bar.reps) / Double(maxReps)))
                             VStack {
                                 Spacer(minLength: 0)
                                 RoundedRectangle(cornerRadius: 6)
-                                    .fill(bar.reps > 0 ? WorkoutTheme.deepOrange : Color.black.opacity(0.1))
+                                    .fill(bar.reps > 0 ? WorkoutTheme.deepAccent : WorkoutInk.secondary.opacity(0.2))
                                     .frame(height: height)
                             }
                         }
@@ -767,7 +767,7 @@ private struct WeeklyBarChart: View {
 
                         Text(bar.weekdaySymbol)
                             .font(.caption2.weight(.bold))
-                            .foregroundStyle(bar.isToday ? WorkoutTheme.deepOrange : Color.black.opacity(0.62))
+                            .foregroundStyle(bar.isToday ? WorkoutTheme.deepAccent : WorkoutInk.secondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -788,13 +788,13 @@ private struct WorkoutTimelineRow: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(spacing: 0) {
                 Rectangle()
-                    .fill(isFirst ? .clear : WorkoutTheme.orange.opacity(0.45))
+                    .fill(isFirst ? .clear : WorkoutTheme.accent.opacity(0.45))
                     .frame(width: 3, height: 18)
                 Circle()
-                    .fill(WorkoutTheme.orange)
+                    .fill(WorkoutTheme.accent)
                     .frame(width: 11, height: 11)
                 Rectangle()
-                    .fill(isLast ? .clear : WorkoutTheme.orange.opacity(0.45))
+                    .fill(isLast ? .clear : WorkoutTheme.accent.opacity(0.45))
                     .frame(width: 3)
             }
             .frame(width: 16, height: 108)
@@ -809,13 +809,13 @@ private struct WorkoutTimelineRow: View {
                     .foregroundStyle(WorkoutInk.primary)
                 Text(record.completedAt.formatted(date: .abbreviated, time: .shortened))
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.black.opacity(0.62))
+                    .foregroundStyle(WorkoutInk.secondary)
                 HStack(spacing: 8) {
                     Label("\(Int(record.duration))秒", systemImage: "timer")
                     Label(record.exercise.title, systemImage: record.exercise.systemImage)
                 }
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
             }
             .padding(.top, 7)
 
@@ -823,7 +823,7 @@ private struct WorkoutTimelineRow: View {
 
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
                 .padding(.top, 18)
         }
         .padding(.horizontal, 14)
@@ -842,7 +842,7 @@ private struct WorkoutRecordDetailView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                WorkoutTheme.orange.ignoresSafeArea()
+                WorkoutTheme.background.ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 18) {
@@ -932,7 +932,7 @@ private struct RecordDetailLine: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
             Spacer()
             Text(value)
                 .fontWeight(.black)
@@ -956,7 +956,7 @@ private struct LogMetric: View {
                 .foregroundStyle(WorkoutInk.primary)
             Text(label)
                 .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }

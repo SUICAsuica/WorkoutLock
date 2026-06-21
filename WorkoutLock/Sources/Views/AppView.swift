@@ -1,12 +1,39 @@
 import SwiftUI
+import UIKit
 
 enum WorkoutTheme {
-    static let orange = Color(red: 1, green: 0.55, blue: 0.16)
-    static let deepOrange = Color(red: 0.92, green: 0.38, blue: 0.05)
-    static let ink = Color.black
+    static func adaptive(light: String, dark: String) -> Color {
+        Color(uiColor: UIColor { traits in
+            uiColor(hex: traits.userInterfaceStyle == .dark ? dark : light)
+        })
+    }
+
+    static let background = adaptive(light: "#F7ECDD", dark: "#1B1613")
+    static let inkPrimary = adaptive(light: "#33231A", dark: "#F2E8DC")
+    static let inkSecondary = adaptive(light: "#6E5A49", dark: "#B6A48F")
+    static let accent = adaptive(light: "#EE7E2E", dark: "#FF9A4D")
+    static let deepAccent = adaptive(light: "#D9631A", dark: "#F07A28")
+    static let accentInk = Color(red: 0.20, green: 0.14, blue: 0.10)
+    static let orange = accent
+    static let deepOrange = deepAccent
+    static let ink = inkPrimary
     static let panel = Color(red: 0.08, green: 0.08, blue: 0.08)
-    static let mutedInk = Color.black.opacity(0.48)
-    static let line = Color.black.opacity(0.22)
+    static let mutedInk = inkSecondary
+    static let line = inkSecondary.opacity(0.28)
+
+    private static func uiColor(hex: String) -> UIColor {
+        let value = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        guard value.count == 6, let number = UInt32(value, radix: 16) else {
+            return .clear
+        }
+
+        return UIColor(
+            red: CGFloat((number >> 16) & 0xFF) / 255,
+            green: CGFloat((number >> 8) & 0xFF) / 255,
+            blue: CGFloat(number & 0xFF) / 255,
+            alpha: 1
+        )
+    }
 }
 
 struct AppView: View {
@@ -71,7 +98,7 @@ struct AppView: View {
             }
             .tag(3)
         }
-        .tint(.black)
+        .tint(WorkoutTheme.accent)
     }
 }
 

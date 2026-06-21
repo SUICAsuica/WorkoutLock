@@ -10,7 +10,7 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-            WorkoutTheme.orange.ignoresSafeArea()
+            WorkoutTheme.background.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -71,13 +71,13 @@ struct SettingsView: View {
                             }
                         }
                         .pickerStyle(.menu)
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
                         .disabled(!store.workoutMusicEnabled)
 
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("音量")
-                                    .foregroundStyle(Color.black.opacity(0.62))
+                                    .foregroundStyle(WorkoutInk.secondary)
                                 Spacer()
                                 Text("\(Int(store.workoutMusicVolume * 100))%")
                                     .fontWeight(.black)
@@ -86,7 +86,7 @@ struct SettingsView: View {
                             .font(.subheadline.weight(.bold))
 
                             Slider(value: $store.workoutMusicVolume, in: 0.1...1)
-                                .tint(.black)
+                                .tint(WorkoutTheme.accent)
                                 .disabled(!store.workoutMusicEnabled)
                         }
 
@@ -104,7 +104,7 @@ struct SettingsView: View {
                         )
                         Text(shielding.capabilityText)
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(Color.black.opacity(0.62))
+                            .foregroundStyle(WorkoutInk.secondary)
 
                         Toggle("アプリブロックをオン", isOn: $store.appBlockingEnabled)
                             .font(.headline.weight(.bold))
@@ -119,7 +119,7 @@ struct SettingsView: View {
                                 .padding(.vertical, 14)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
 
                         Button {
                             Haptics.selection()
@@ -131,7 +131,7 @@ struct SettingsView: View {
                                 .padding(.vertical, 14)
                         }
                         .buttonStyle(.bordered)
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
 
                         SettingsLine(title: "ブロック対象", value: shielding.selectionSummary)
                         SettingsLine(title: "接続状態", value: shielding.statusText)
@@ -161,11 +161,11 @@ struct SettingsView: View {
                                 .padding(.vertical, 14)
                         }
                         .buttonStyle(.bordered)
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
 
                         Text("記録・ログ・設定は残したまま、最初の流れをもう一度見られます。")
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.black.opacity(0.62))
+                            .foregroundStyle(WorkoutInk.secondary)
                     }
                     .settingsPanel()
                 }
@@ -197,7 +197,7 @@ private struct SettingsLine: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
             Spacer()
             Text(value)
                 .fontWeight(.black)
@@ -216,11 +216,11 @@ private struct BlockingReadinessRow: View {
         HStack {
             Text(title)
                 .font(.subheadline.weight(.black))
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
             Spacer()
             Text(value)
                 .font(.headline.weight(.black))
-                .foregroundStyle(isReady ? WorkoutInk.primary : Color.black.opacity(0.62))
+                .foregroundStyle(isReady ? WorkoutInk.primary : WorkoutInk.secondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
                 .background(

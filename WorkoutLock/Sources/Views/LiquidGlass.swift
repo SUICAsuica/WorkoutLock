@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// Liquid Glass 面の上で読みやすい、濃いブラウン系のテキスト色。
+/// Liquid Glass 面の上で読みやすい、ライト/ダーク対応のテキスト色。
 enum WorkoutInk {
-    static let primary = Color(red: 0.23, green: 0.11, blue: 0.02)
+    static let primary = WorkoutTheme.inkPrimary
+    static let secondary = WorkoutTheme.inkSecondary
 }
 
 /// iOS 26 の Liquid Glass を使う薄いラッパー。

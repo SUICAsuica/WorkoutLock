@@ -7,6 +7,9 @@ struct WorkoutShareCard: View {
     let streakDays: Int
     let totalReps: Int
 
+    private let shareAccent = Color(red: 1, green: 0.55, blue: 0.16)
+    private let shareDeepAccent = Color(red: 0.92, green: 0.38, blue: 0.05)
+
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             backdrop
@@ -26,7 +29,7 @@ struct WorkoutShareCard: View {
                     Text("筋トレロック")
                         .font(.system(size: 20, weight: .black, design: .rounded))
                 }
-                .foregroundStyle(WorkoutTheme.orange)
+                .foregroundStyle(shareAccent)
 
                 HStack(alignment: .lastTextBaseline, spacing: 8) {
                     Text("\(record.actualReps)")
@@ -64,7 +67,7 @@ struct WorkoutShareCard: View {
                 .clipped()
         } else {
             LinearGradient(
-                colors: [WorkoutTheme.orange, WorkoutTheme.deepOrange],
+                colors: [shareAccent, shareDeepAccent],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )

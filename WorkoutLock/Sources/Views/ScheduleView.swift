@@ -8,7 +8,7 @@ struct ScheduleView: View {
 
     var body: some View {
         ZStack {
-            WorkoutTheme.orange.ignoresSafeArea()
+            WorkoutTheme.background.ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
@@ -99,16 +99,16 @@ struct ScheduleView: View {
                                 .padding(.vertical, 14)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
 
                         Text(store.notificationMessage)
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.black.opacity(0.62))
+                            .foregroundStyle(WorkoutInk.secondary)
 
                         if store.triggerPreference == .homeArrival {
                             Text("帰宅後だけを使う場合、毎日9:30のような時刻通知は予約しません。")
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(Color.black.opacity(0.62))
+                                .foregroundStyle(WorkoutInk.secondary)
                         }
                     }
                     .schedulePanel()
@@ -138,7 +138,7 @@ struct ScheduleView: View {
                                 .padding(.vertical, 14)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
 
                         Button {
                             Haptics.selection()
@@ -150,12 +150,12 @@ struct ScheduleView: View {
                                 .padding(.vertical, 12)
                         }
                         .buttonStyle(.bordered)
-                        .tint(.black)
+                        .tint(WorkoutTheme.accent)
 
                         if store.triggerLocations.isEmpty {
                             Text(locationTrigger.statusText)
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(Color.black.opacity(0.62))
+                                .foregroundStyle(WorkoutInk.secondary)
                         } else {
                             ForEach(store.triggerLocations) { location in
                                 HStack {
@@ -164,7 +164,7 @@ struct ScheduleView: View {
                                             .font(.headline.weight(.black))
                                         Text(location.shortLabel)
                                             .font(.caption.monospacedDigit().weight(.bold))
-                                            .foregroundStyle(Color.black.opacity(0.62))
+                                            .foregroundStyle(WorkoutInk.secondary)
                                     }
                                     Spacer()
                                     Button {
@@ -211,7 +211,7 @@ private struct SettingsLikeLine: View {
     var body: some View {
         HStack {
             Text(title)
-                .foregroundStyle(Color.black.opacity(0.62))
+                .foregroundStyle(WorkoutInk.secondary)
             Spacer()
             Text(value)
                 .fontWeight(.black)
